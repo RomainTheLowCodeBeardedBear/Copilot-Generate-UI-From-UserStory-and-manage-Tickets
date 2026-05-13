@@ -31,6 +31,11 @@
       font-weight: 600;
       flex-shrink: 0;
     }
+    .header .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     .header .badge {
       background: rgba(255,255,255,0.2);
       padding: 2px 8px;
@@ -38,6 +43,22 @@
       font-size: 11px;
       font-weight: 400;
     }
+    .btn-open {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-open:hover { background: rgba(255,255,255,0.4); }
+    .btn-open svg { width: 14px; height: 14px; fill: currentColor; }
 
     /* Loading state */
     .loading-container {
@@ -99,7 +120,13 @@
 <body>
   <div class="header">
     <span>UI Generator Preview</span>
-    <span class="badge" id="status-badge">En attente...</span>
+    <div class="header-actions">
+      <button class="btn-open" id="btn-open" title="Ouvrir en grand dans un nouvel onglet">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M11 3a1 1 0 100 2h2.586l-4.293 4.293a1 1 0 001.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+        Ouvrir en grand
+      </button>
+      <span class="badge" id="status-badge">En attente...</span>
+    </div>
   </div>
 
   <div class="loading-container" id="loading">
@@ -129,6 +156,17 @@
     const errorEl = document.getElementById('error');
     const errorMsg = document.getElementById('error-message');
     const statusBadge = document.getElementById('status-badge');
+    const btnOpen = document.getElementById('btn-open');
+
+    let currentHtmlCode = '';
+
+    // Open in new tab
+    btnOpen.addEventListener('click', () => {
+      if (!currentHtmlCode) return;
+      const blob = new Blob([currentHtmlCode], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    });
 
     function applyTheme(theme) {
       const tokens = theme === 'dark' ? webDarkTheme : webLightTheme;
@@ -157,6 +195,9 @@
       previewEl.style.display = 'block';
       errorEl.style.display = 'none';
       infoBar.style.display = 'block';
+      btnOpen.style.display = 'flex';
+
+      currentHtmlCode = htmlCode;
 
       // Write the generated HTML into the iframe
       const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;

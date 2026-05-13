@@ -22,6 +22,7 @@
     "full": "Agent M365 Copilot qui genere des interfaces HTML/CSS/JS a la volee. Decrivez ce que vous voulez en langage naturel (formulaire, dashboard, page d'accueil...) et l'agent genere le code qui s'affiche instantanement dans le panneau lateral. Continuez la conversation pour modifier l'interface en temps reel."
   },
   "accentColor": "#FFFFFF",
+  "supportsChannelFeatures": "tier1",
   "copilotAgents": {
     "declarativeAgents": [
       {

@@ -42,6 +42,7 @@
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
               "execution": { "taskSupport": "forbidden" },
+              "annotations": { "readOnlyHint": true },
               "_meta": {
                 "ui": { "resourceUri": "ui://uigenerator/preview.html" },
                 "ui/resourceUri": "ui://uigenerator/preview.html"
@@ -67,6 +68,7 @@
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
               "execution": { "taskSupport": "forbidden" },
+              "annotations": { "readOnlyHint": true },
               "_meta": {
                 "ui": { "resourceUri": "ui://uigenerator/preview.html" },
                 "ui/resourceUri": "ui://uigenerator/preview.html"

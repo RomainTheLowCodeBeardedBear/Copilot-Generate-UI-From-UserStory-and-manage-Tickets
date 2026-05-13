@@ -59,6 +59,22 @@
     }
     .btn-open:hover { background: rgba(255,255,255,0.4); }
     .btn-open svg { width: 14px; height: 14px; fill: currentColor; }
+    .btn-back {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.4); }
+    .btn-back svg { width: 14px; height: 14px; fill: currentColor; }
 
     /* Loading state */
     .loading-container {
@@ -121,9 +137,13 @@
   <div class="header">
     <span>UI Generator Preview</span>
     <div class="header-actions">
-      <button class="btn-open" id="btn-open" title="Ouvrir en grand dans un nouvel onglet">
+      <button class="btn-open" id="btn-open" title="Ouvrir en grand">
         <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M11 3a1 1 0 100 2h2.586l-4.293 4.293a1 1 0 001.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
         Ouvrir en grand
+      </button>
+      <button class="btn-back" id="btn-back" title="Retour au chat">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 3.293L3.293 10 10 16.707l1.414-1.414L7.12 11H17V9H7.12l4.294-4.293L10 3.293z"/></svg>
+        Retour
       </button>
       <span class="badge" id="status-badge">En attente...</span>
     </div>
@@ -159,13 +179,24 @@
     const btnOpen = document.getElementById('btn-open');
 
     let currentHtmlCode = '';
+    let isFullscreen = false;
 
-    // Open in new tab
-    btnOpen.addEventListener('click', () => {
+    // Open in fullscreen panel
+    btnOpen.addEventListener('click', async () => {
       if (!currentHtmlCode) return;
-      const blob = new Blob([currentHtmlCode], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+      isFullscreen = true;
+      btnOpen.style.display = 'none';
+      btnBack.style.display = 'flex';
+    });
+
+    // Back to inline
+    const btnBack = document.getElementById('btn-back');
+    btnBack.addEventListener('click', async () => {
+      try { await app.requestDisplayMode({ mode: 'inline' }); } catch (_) {}
+      isFullscreen = false;
+      btnOpen.style.display = 'flex';
+      btnBack.style.display = 'none';
     });
 
     function applyTheme(theme) {
@@ -195,7 +226,6 @@
       previewEl.style.display = 'block';
       errorEl.style.display = 'none';
       infoBar.style.display = 'block';
-      btnOpen.style.display = 'flex';
 
       currentHtmlCode = htmlCode;
 
@@ -208,6 +238,14 @@
       const label = type === 'update' ? 'Mis a jour' : 'Genere';
       statusBadge.textContent = label;
       infoBar.textContent = description;
+
+      // Auto-open fullscreen on first generation
+      if (!isFullscreen) {
+        isFullscreen = true;
+        btnOpen.style.display = 'none';
+        btnBack.style.display = 'flex';
+        try { app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+      }
     }
 
     function showError(message) {

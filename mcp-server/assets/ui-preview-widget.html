@@ -76,6 +76,26 @@
     .btn-back:hover { background: rgba(255,255,255,0.4); }
     .btn-back svg { width: 14px; height: 14px; fill: currentColor; }
 
+    .btn-toggle {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-toggle:hover { background: rgba(255,255,255,0.4); }
+    .btn-toggle svg { width: 14px; height: 14px; fill: currentColor; }
+    .btn-toggle.active {
+      background: rgba(255,255,255,0.5);
+    }
+
     /* Loading state */
     .loading-container {
       flex: 1;
@@ -109,6 +129,40 @@
       background: white;
     }
 
+    /* Code view */
+    .code-container {
+      flex: 1;
+      display: none;
+      position: relative;
+      overflow: auto;
+      background: #1e1e1e;
+    }
+    .code-container pre {
+      margin: 0;
+      padding: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .btn-copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #ccc;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      z-index: 2;
+      transition: background 0.15s;
+    }
+    .btn-copy:hover { background: #505050; color: white; }
+
     /* Info bar */
     .info-bar {
       padding: 8px 16px;
@@ -137,6 +191,10 @@
   <div class="header">
     <span>UI Generator Preview</span>
     <div class="header-actions">
+      <button class="btn-toggle" id="btn-toggle" title="Basculer entre apercu et code">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M5.854 4.146a.5.5 0 10-.708.708l3 3a.5.5 0 00.708 0l3-3a.5.5 0 00-.708-.708L9 6.293V1.5a.5.5 0 00-1 0v4.793L5.854 4.146zM2.5 7a.5.5 0 01.354.146L6 10.293l3.146-3.147a.5.5 0 01.708.708l-3.5 3.5a.5.5 0 01-.708 0l-3.5-3.5A.5.5 0 012.5 7z" fill="none"/><path d="M7.5 2a.5.5 0 00-.5.5v1a.5.5 0 001 0v-1a.5.5 0 00-.5-.5z" fill="none"/><path d="M12.146 5.146a.5.5 0 01.708 0l2.5 2.5a.5.5 0 010 .708l-2.5 2.5a.5.5 0 01-.708-.708L14.293 8l-2.147-2.146a.5.5 0 010-.708zM7.854 5.146a.5.5 0 00-.708 0l-2.5 2.5a.5.5 0 000 .708l2.5 2.5a.5.5 0 00.708-.708L5.707 8l2.147-2.146a.5.5 0 000-.708zM10.608 4.21a.5.5 0 01.18.684l-3 5a.5.5 0 11-.865-.504l3-5a.5.5 0 01.685-.18z"/></svg>
+        Code
+      </button>
       <button class="btn-open" id="btn-open" title="Ouvrir en grand">
         <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M11 3a1 1 0 100 2h2.586l-4.293 4.293a1 1 0 001.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5zM5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
         Ouvrir en grand
@@ -158,6 +216,11 @@
     <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="UI Preview"></iframe>
   </div>
 
+  <div class="code-container" id="code-view">
+    <button class="btn-copy" id="btn-copy">Copier</button>
+    <pre><code id="code-content"></code></pre>
+  </div>
+
   <div class="info-bar" id="info-bar"></div>
 
   <div class="error-container" id="error">
@@ -172,14 +235,50 @@
     const loadingEl = document.getElementById('loading');
     const previewEl = document.getElementById('preview');
     const previewFrame = document.getElementById('preview-frame');
+    const codeView = document.getElementById('code-view');
+    const codeContent = document.getElementById('code-content');
     const infoBar = document.getElementById('info-bar');
     const errorEl = document.getElementById('error');
     const errorMsg = document.getElementById('error-message');
     const statusBadge = document.getElementById('status-badge');
     const btnOpen = document.getElementById('btn-open');
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnCopy = document.getElementById('btn-copy');
 
     let currentHtmlCode = '';
     let isFullscreen = false;
+    let showingCode = false;
+
+    // Toggle code/preview
+    btnToggle.addEventListener('click', () => {
+      showingCode = !showingCode;
+      if (showingCode) {
+        previewEl.style.display = 'none';
+        codeView.style.display = 'block';
+        codeContent.textContent = currentHtmlCode;
+        btnToggle.classList.add('active');
+        btnToggle.querySelector('span')?.remove();
+        btnToggle.insertAdjacentHTML('beforeend', '<span>Apercu</span>');
+      } else {
+        previewEl.style.display = 'block';
+        codeView.style.display = 'none';
+        btnToggle.classList.remove('active');
+        btnToggle.querySelector('span')?.remove();
+        btnToggle.insertAdjacentHTML('beforeend', '<span>Code</span>');
+      }
+    });
+
+    // Copy code
+    btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(currentHtmlCode);
+        btnCopy.textContent = 'Copie !';
+        setTimeout(() => { btnCopy.textContent = 'Copier'; }, 1500);
+      } catch (_) {
+        btnCopy.textContent = 'Erreur';
+        setTimeout(() => { btnCopy.textContent = 'Copier'; }, 1500);
+      }
+    });
 
     // Open in fullscreen panel
     btnOpen.addEventListener('click', async () => {
@@ -216,18 +315,30 @@
     function showLoading() {
       loadingEl.style.display = 'flex';
       previewEl.style.display = 'none';
+      codeView.style.display = 'none';
       errorEl.style.display = 'none';
       infoBar.style.display = 'none';
+      btnToggle.style.display = 'none';
       statusBadge.textContent = 'En attente...';
     }
 
     function showPreview(htmlCode, description, type) {
       loadingEl.style.display = 'none';
-      previewEl.style.display = 'block';
       errorEl.style.display = 'none';
       infoBar.style.display = 'block';
+      btnToggle.style.display = 'flex';
 
       currentHtmlCode = htmlCode;
+
+      // Show correct view
+      if (showingCode) {
+        previewEl.style.display = 'none';
+        codeView.style.display = 'block';
+        codeContent.textContent = htmlCode;
+      } else {
+        previewEl.style.display = 'block';
+        codeView.style.display = 'none';
+      }
 
       // Write the generated HTML into the iframe
       const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
@@ -251,8 +362,10 @@
     function showError(message) {
       loadingEl.style.display = 'none';
       previewEl.style.display = 'none';
+      codeView.style.display = 'none';
       errorEl.style.display = 'flex';
       infoBar.style.display = 'none';
+      btnToggle.style.display = 'none';
       errorMsg.textContent = message;
       statusBadge.textContent = 'Erreur';
     }

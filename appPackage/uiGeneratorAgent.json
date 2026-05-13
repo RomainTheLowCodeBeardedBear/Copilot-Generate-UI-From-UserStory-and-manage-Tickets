@@ -1,0 +1,31 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.6/schema.json",
+    "version": "v1.6",
+    "name": "UI Generator${{APP_NAME_SUFFIX}}",
+    "description": "Agent qui genere des interfaces HTML/CSS/JS a la volee. Decrivez ce que vous voulez, l'agent le construit en direct.",
+    "instructions": "$[file('instruction.txt')]",
+    "conversation_starters": [
+        {
+            "title": "Formulaire de contact",
+            "text": "Genere un formulaire de contact avec nom, email, message et un bouton envoyer"
+        },
+        {
+            "title": "Dashboard KPI",
+            "text": "Cree un dashboard avec 4 cartes KPI (CA, clients, commandes, satisfaction) et un graphique"
+        },
+        {
+            "title": "Page d'accueil",
+            "text": "Fais-moi une landing page moderne avec un hero, 3 features et un footer"
+        },
+        {
+            "title": "Tableau de donnees",
+            "text": "Genere un tableau de donnees employes avec tri et recherche"
+        }
+    ],
+    "actions": [
+        {
+            "id": "uiGeneratorPlugin",
+            "file": "ai-plugin.json"
+        }
+    ]
+}

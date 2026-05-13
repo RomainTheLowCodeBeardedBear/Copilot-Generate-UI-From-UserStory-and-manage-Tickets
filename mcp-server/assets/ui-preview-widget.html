@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: var(--colorNeutralBackground1, #fff);
+      color: var(--colorNeutralForeground1, #242424);
+      overflow-x: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header bar */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--colorBrandBackground, #0078d4);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .header .badge {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    /* Loading state */
+    .loading-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--colorNeutralForeground3, #707070);
+    }
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--colorNeutralStroke1, #e0e0e0);
+      border-top-color: var(--colorBrandForeground1, #0078d4);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Preview iframe container */
+    .preview-container {
+      flex: 1;
+      display: none;
+      position: relative;
+    }
+    .preview-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    /* Info bar */
+    .info-bar {
+      padding: 8px 16px;
+      background: var(--colorNeutralBackground3, #f5f5f5);
+      border-top: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+      font-size: 12px;
+      color: var(--colorNeutralForeground3, #707070);
+      flex-shrink: 0;
+      display: none;
+    }
+
+    /* Error state */
+    .error-container {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 12px;
+      color: var(--colorPaletteRedForeground1, #c50f1f);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span>UI Generator Preview</span>
+    <span class="badge" id="status-badge">En attente...</span>
+  </div>
+
+  <div class="loading-container" id="loading">
+    <div class="loading-spinner"></div>
+    <div>En attente de la generation...</div>
+  </div>
+
+  <div class="preview-container" id="preview">
+    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="UI Preview"></iframe>
+  </div>
+
+  <div class="info-bar" id="info-bar"></div>
+
+  <div class="error-container" id="error">
+    <div style="font-size: 24px;">&#9888;</div>
+    <div id="error-message">Erreur</div>
+  </div>
+
+  <script type="module">
+    import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
+    import { webLightTheme, webDarkTheme } from 'https://cdn.jsdelivr.net/npm/@fluentui/tokens/+esm';
+
+    const loadingEl = document.getElementById('loading');
+    const previewEl = document.getElementById('preview');
+    const previewFrame = document.getElementById('preview-frame');
+    const infoBar = document.getElementById('info-bar');
+    const errorEl = document.getElementById('error');
+    const errorMsg = document.getElementById('error-message');
+    const statusBadge = document.getElementById('status-badge');
+
+    function applyTheme(theme) {
+      const tokens = theme === 'dark' ? webDarkTheme : webLightTheme;
+      const root = document.documentElement;
+      for (const [token, value] of Object.entries(tokens)) {
+        root.style.setProperty('--' + token, value);
+      }
+      document.body.style.background = theme === 'dark'
+        ? 'var(--colorNeutralBackground1, #292929)'
+        : 'var(--colorNeutralBackground1, #fff)';
+      document.body.style.color = theme === 'dark'
+        ? 'var(--colorNeutralForeground1, #e0e0e0)'
+        : 'var(--colorNeutralForeground1, #242424)';
+    }
+
+    function showLoading() {
+      loadingEl.style.display = 'flex';
+      previewEl.style.display = 'none';
+      errorEl.style.display = 'none';
+      infoBar.style.display = 'none';
+      statusBadge.textContent = 'En attente...';
+    }
+
+    function showPreview(htmlCode, description, type) {
+      loadingEl.style.display = 'none';
+      previewEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      infoBar.style.display = 'block';
+
+      // Write the generated HTML into the iframe
+      const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+      doc.open();
+      doc.write(htmlCode);
+      doc.close();
+
+      const label = type === 'update' ? 'Mis a jour' : 'Genere';
+      statusBadge.textContent = label;
+      infoBar.textContent = description;
+    }
+
+    function showError(message) {
+      loadingEl.style.display = 'none';
+      previewEl.style.display = 'none';
+      errorEl.style.display = 'flex';
+      infoBar.style.display = 'none';
+      errorMsg.textContent = message;
+      statusBadge.textContent = 'Erreur';
+    }
+
+    // Show loading initially
+    showLoading();
+
+    // MCP Apps setup
+    const app = new App({ name: 'ui-preview', version: '1.0.0' });
+
+    app.ontoolresult = (result) => {
+      const data = result.structuredContent;
+      if (data && data.htmlCode) {
+        showPreview(data.htmlCode, data.description || '', data.type || 'generate');
+      } else {
+        showError('Aucun code HTML recu.');
+      }
+    };
+
+    app.onhostcontextchanged = (ctx) => {
+      if (ctx.theme) { applyTheme(ctx.theme); }
+    };
+
+    app.onteardown = () => ({});
+
+    await app.connect();
+
+    const hostCtx = app.getHostContext();
+    if (hostCtx?.theme) { applyTheme(hostCtx.theme); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.4/schema.json",
+  "schema_version": "v2.4",
+  "namespace": "uigenerator",
+  "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
+  "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot",
+  "description_for_model": "Plugin de generation d'interfaces web. generateUI cree une interface HTML complete a partir d'une description. updateUI modifie l'interface existante selon les demandes. Le code HTML genere s'affiche dans un widget lateral interactif.",
+  "functions": [
+    {
+      "name": "generateUI",
+      "description": "Genere une interface HTML/CSS/JS complete a partir d'une description en langage naturel. Le resultat s'affiche dans le widget lateral."
+    },
+    {
+      "name": "updateUI",
+      "description": "Met a jour l'interface existante avec les modifications demandees. Envoyer le code HTML complet mis a jour (pas juste le diff)."
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "RemoteMCPServer",
+      "spec": {
+        "url": "${{OPENAPI_SERVER_URL}}/mcp",
+        "x-mcp_tool_description": {
+          "tools": [
+            {
+              "name": "generateUI",
+              "description": "Genere une interface HTML/CSS/JS complete a partir d'une description. Le code HTML est rendu dans le widget lateral.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Description en langage naturel de l'interface a generer (ex: 'un formulaire de contact avec nom, email et message')"
+                  },
+                  "htmlCode": {
+                    "type": "string",
+                    "description": "Code HTML/CSS/JS complet de l'interface generee. Doit etre un document HTML valide auto-contenu avec styles inline et scripts integres."
+                  }
+                },
+                "required": ["description", "htmlCode"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+                "ui/resourceUri": "ui://uigenerator/preview.html"
+              }
+            },
+            {
+              "name": "updateUI",
+              "description": "Met a jour l'interface existante. Envoyer le code HTML complet avec les modifications appliquees.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Description des modifications apportees (ex: 'changement de la couleur de fond en bleu')"
+                  },
+                  "htmlCode": {
+                    "type": "string",
+                    "description": "Code HTML/CSS/JS complet mis a jour de l'interface. Doit etre un document HTML valide auto-contenu."
+                  }
+                },
+                "required": ["description", "htmlCode"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+                "ui/resourceUri": "ui://uigenerator/preview.html"
+              }
+            }
+          ]
+        }
+      },
+      "run_for_functions": [
+        "generateUI",
+        "updateUI"
+      ]
+    }
+  ],
+  "capabilities": {
+    "conversation_starters": [
+      { "text": "Genere un formulaire de contact moderne" },
+      { "text": "Cree un dashboard avec des KPI" },
+      { "text": "Fais une landing page avec hero et features" },
+      { "text": "Genere un tableau de donnees avec recherche" }
+    ]
+  }
+}

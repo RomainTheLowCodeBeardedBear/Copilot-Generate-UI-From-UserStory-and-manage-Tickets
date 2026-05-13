@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.26/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.26",
+  "id": "${{TEAMS_APP_ID}}",
+  "version": "1.0.0",
+  "developer": {
+    "name": "My App, Inc.",
+    "websiteUrl": "https://www.example.com",
+    "privacyUrl": "https://www.example.com/privacy",
+    "termsOfUseUrl": "https://www.example.com/termsofuse"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "UI Generator${{APP_NAME_SUFFIX}}",
+    "full": "Agent generateur d'interfaces HTML en temps reel"
+  },
+  "description": {
+    "short": "Decrivez une interface, l'agent la genere en direct dans le chat.",
+    "full": "Agent M365 Copilot qui genere des interfaces HTML/CSS/JS a la volee. Decrivez ce que vous voulez en langage naturel (formulaire, dashboard, page d'accueil...) et l'agent genere le code qui s'affiche instantanement dans le panneau lateral. Continuez la conversation pour modifier l'interface en temps reel."
+  },
+  "accentColor": "#FFFFFF",
+  "copilotAgents": {
+    "declarativeAgents": [
+      {
+        "id": "uiGeneratorAgent",
+        "file": "uiGeneratorAgent.json"
+      }
+    ]
+  },
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ]
+}

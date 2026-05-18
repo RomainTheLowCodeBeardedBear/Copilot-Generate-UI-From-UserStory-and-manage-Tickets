@@ -285,5 +285,48 @@ export function createMcpServer(): McpServer {
     },
   );
 
+  registerAppTool(
+    server,
+    'updateTicket',
+    {
+      description: 'Met a jour les champs d\'un ticket (titre, description, statut, priorite, assignee)',
+      inputSchema: {
+        ticketId: z.string().describe('Identifiant du ticket a modifier, par exemple US-001'),
+        title: z.string().optional().describe('Nouveau titre du ticket'),
+        description: z.string().optional().describe('Nouvelle description du ticket'),
+        status: z.enum(['To Do', 'In Progress', 'Done']).optional().describe('Nouveau statut'),
+        priority: z.enum(['High', 'Medium', 'Low']).optional().describe('Nouvelle priorite'),
+        assignee: z.string().optional().describe('Nouveau responsable'),
+      },
+      _meta: {
+        ui: { resourceUri: TICKETS_LIST_URI },
+      },
+    },
+    async ({ ticketId, title, description, status, priority, assignee }) => {
+      const tickets = loadTickets();
+      const { ticket, index } = findTicket(tickets, ticketId);
+      const updatedTicket: Ticket = {
+        ...ticket,
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(status !== undefined && { status }),
+        ...(priority !== undefined && { priority }),
+        ...(assignee !== undefined && { assignee }),
+      };
+      tickets[index] = updatedTicket;
+      saveTickets(tickets);
+      console.log(`[updateTicket] ${ticketId}`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Ticket ${ticketId} mis a jour.` }],
+        structuredContent: {
+          type: 'ticketUpdated',
+          ticket: { ...updatedTicket, uiProposal: undefined, hasUiProposal: Boolean(updatedTicket.uiProposal) },
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
   return server;
 }

@@ -29,6 +29,10 @@
     {
       "name": "saveUIToTicket",
       "description": "Enregistre la version finale d'une interface HTML/CSS/JS sur un ticket existant."
+    },
+    {
+      "name": "updateTicket",
+      "description": "Met a jour les champs d'un ticket (titre, description, statut, priorite, assignee)."
     }
   ],
   "runtimes": [
@@ -170,6 +174,49 @@
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
               "execution": { "taskSupport": "forbidden" }
+            },
+            {
+              "name": "updateTicket",
+              "description": "Met a jour les champs d'un ticket : titre, description, statut, priorite, assignee.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "description": "Identifiant du ticket a modifier (ex: 'US-001')"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Nouveau titre du ticket"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Nouvelle description du ticket"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["To Do", "In Progress", "Done"],
+                    "description": "Nouveau statut du ticket"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["High", "Medium", "Low"],
+                    "description": "Nouvelle priorite du ticket"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "Nouveau responsable du ticket"
+                  }
+                },
+                "required": ["ticketId"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
+              }
             }
           ]
         }
@@ -180,7 +227,8 @@
         "listTickets",
         "getTicket",
         "generateUIFromTicket",
-        "saveUIToTicket"
+        "saveUIToTicket",
+        "updateTicket"
       ]
     }
   ],

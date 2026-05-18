@@ -206,6 +206,39 @@
       margin-top: 4px;
     }
     .btn-expand:hover { text-decoration: underline; }
+    .edit-form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+      background: var(--colorNeutralBackground3, #f9fafb);
+      border-radius: 12px;
+      border: 1px solid var(--colorNeutralStroke2, #e5e7eb);
+    }
+    .edit-form.visible { display: flex; }
+    .edit-form label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--colorNeutralForeground2, #4b5563);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .edit-form input, .edit-form textarea, .edit-form select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--colorNeutralStroke1, #d1d5db);
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--colorNeutralBackground1, #fff);
+      color: var(--colorNeutralForeground1, #111827);
+    }
+    .edit-form textarea { min-height: 60px; resize: vertical; }
+    .edit-form .form-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
     .actions {
       display: flex;
       justify-content: flex-end;
@@ -405,7 +438,7 @@
         const { short, isTruncated } = truncateDescription(ticket.description);
 
         return `
-          <article class="ticket-card">
+          <article class="ticket-card" data-id="${escapeHtml(ticket.id)}">
             <div class="ticket-top">
               <div>
                 <span class="ticket-id">${escapeHtml(ticket.id)}</span>
@@ -422,7 +455,33 @@
               <button class="btn-expand" data-ticket-id="${escapeHtml(ticket.id)}">Voir plus ▾</button>` : ''}
             </div>
             <div class="assignee">Assignee: ${escapeHtml(ticket.assignee)}</div>
+            <div class="edit-form" id="edit-form-${escapeHtml(ticket.id)}">
+              <label>Titre <input type="text" name="title" value="${escapeHtml(ticket.title)}"></label>
+              <label>Description <textarea name="description">${escapeHtml(ticket.description)}</textarea></label>
+              <label>Statut
+                <select name="status">
+                  <option value="To Do" ${ticket.status === 'To Do' ? 'selected' : ''}>To Do</option>
+                  <option value="In Progress" ${ticket.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                  <option value="Done" ${ticket.status === 'Done' ? 'selected' : ''}>Done</option>
+                </select>
+              </label>
+              <label>Priorite
+                <select name="priority">
+                  <option value="High" ${ticket.priority === 'High' ? 'selected' : ''}>High</option>
+                  <option value="Medium" ${ticket.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+                  <option value="Low" ${ticket.priority === 'Low' ? 'selected' : ''}>Low</option>
+                </select>
+              </label>
+              <label>Assignee <input type="text" name="assignee" value="${escapeHtml(ticket.assignee)}"></label>
+              <div class="form-actions">
+                <fluent-button appearance="outline" class="btn-cancel-edit" data-ticket-id="${escapeHtml(ticket.id)}">Annuler</fluent-button>
+                <fluent-button appearance="accent" class="btn-save-edit" data-ticket-id="${escapeHtml(ticket.id)}">Sauvegarder</fluent-button>
+              </div>
+            </div>
             <div class="actions">
+              <fluent-button appearance="stealth" ${busy ? 'disabled' : ''} class="btn-edit-ticket" data-ticket-id="${escapeHtml(ticket.id)}">
+                📝 Editer ticket
+              </fluent-button>
               ${ticket.hasUiProposal ? `
                 <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="view" data-ticket-id="${escapeHtml(ticket.id)}">
                   📋 Voir l'UI
@@ -453,6 +512,45 @@
           fullEl.classList.toggle('hidden');
           shortEl.classList.toggle('hidden');
           e.target.textContent = isExpanded ? 'Voir plus ▾' : 'Voir moins ▴';
+        });
+      });
+
+      // Edit ticket buttons
+      ticketsEl.querySelectorAll('.btn-edit-ticket').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const ticketId = e.currentTarget.dataset.ticketId;
+          const form = document.getElementById(`edit-form-${ticketId}`);
+          form.classList.toggle('visible');
+        });
+      });
+
+      // Cancel edit
+      ticketsEl.querySelectorAll('.btn-cancel-edit').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const ticketId = e.currentTarget.dataset.ticketId;
+          const form = document.getElementById(`edit-form-${ticketId}`);
+          form.classList.remove('visible');
+        });
+      });
+
+      // Save edit
+      ticketsEl.querySelectorAll('.btn-save-edit').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const ticketId = e.currentTarget.dataset.ticketId;
+          const form = document.getElementById(`edit-form-${ticketId}`);
+          const title = form.querySelector('[name="title"]').value;
+          const description = form.querySelector('[name="description"]').value;
+          const status = form.querySelector('[name="status"]').value;
+          const priority = form.querySelector('[name="priority"]').value;
+          const assignee = form.querySelector('[name="assignee"]').value;
+
+          setBanner(`Sauvegarde du ticket ${ticketId}...`, 'info');
+          try {
+            await app.callServerTool('updateTicket', { ticketId, title, description, status, priority, assignee });
+            form.classList.remove('visible');
+          } catch (error) {
+            setBanner(error instanceof Error ? error.message : 'Erreur de sauvegarde.', 'error');
+          }
         });
       });
 
@@ -555,6 +653,24 @@
         state.isLoaded = true;
         state.tickets = data.tickets;
         setBanner(`${data.tickets.length} tickets charges.`, 'success');
+        renderTickets();
+        renderDetail();
+        return;
+      }
+
+      if (data.type === 'ticketUpdated' && data.ticket) {
+        const updatedSummary = {
+          id: data.ticket.id,
+          title: data.ticket.title,
+          description: data.ticket.description,
+          priority: data.ticket.priority,
+          status: data.ticket.status,
+          assignee: data.ticket.assignee,
+          hasUiProposal: Boolean(data.ticket.hasUiProposal),
+        };
+        const idx = state.tickets.findIndex((t) => t.id === data.ticket.id);
+        if (idx !== -1) { state.tickets[idx] = updatedSummary; }
+        setBanner(`Ticket ${data.ticket.id} mis a jour.`, 'success');
         renderTickets();
         renderDetail();
         return;

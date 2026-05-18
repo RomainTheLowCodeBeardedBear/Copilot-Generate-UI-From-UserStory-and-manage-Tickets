@@ -2,9 +2,9 @@
   {
     "id": "US-001",
     "title": "Login Page",
-    "description": "As a user, I want a login page with email and password fields, a 'Remember me' checkbox, a 'Forgot password?' link, and a submit button. The page should have a modern and clean design with form validation.",
+    "description": "As a user, I want a login page with email and password fields, a 'Remember me' checkbox, a 'Forgot password?' link, and a submit button. The page should have a modern and clean design with form validation...",
     "priority": "High",
-    "status": "In Progress",
+    "status": "To Do",
     "assignee": "Marie Dupont",
     "uiProposal": null
   },

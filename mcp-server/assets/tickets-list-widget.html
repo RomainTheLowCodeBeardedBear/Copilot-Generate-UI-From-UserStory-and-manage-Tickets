@@ -547,7 +547,14 @@
           setBanner(`Sauvegarde du ticket ${ticketId}...`, 'info');
           try {
             await app.callServerTool({ name: 'updateTicket', arguments: { ticketId, title, description, status, priority, assignee } });
+            // Update local state immediately
+            const idx = state.tickets.findIndex((t) => t.id === ticketId);
+            if (idx !== -1) {
+              state.tickets[idx] = { ...state.tickets[idx], title, description, status, priority, assignee };
+            }
             form.classList.remove('visible');
+            setBanner(`Ticket ${ticketId} mis a jour.`, 'success');
+            renderTickets();
           } catch (error) {
             setBanner(error instanceof Error ? error.message : 'Erreur de sauvegarde.', 'error');
           }

@@ -265,7 +265,7 @@
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div id="main-view" class="shell">
     <section class="header">
       <div>
         <h1>Ticket Board</h1>
@@ -283,6 +283,7 @@
     <section class="state-card hidden" id="empty">Aucun ticket disponible.</section>
     <section class="tickets-grid hidden" id="tickets"></section>
   </div>
+  <div id="preview-view" style="display:none;height:100vh;flex-direction:column;overflow:hidden;"></div>
 
   <script type="module">
     import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
@@ -296,6 +297,9 @@
       tickets: [],
       busyTicketId: null,
       isLoaded: false,
+      previewTicketId: null,
+      previewHtml: null,
+      previewTitle: null,
     };
 
     const summaryEl = document.getElementById('summary');
@@ -538,6 +542,31 @@
       }
     }
 
+    function renderPreview() {
+      const mainView = document.getElementById('main-view');
+      const previewView = document.getElementById('preview-view');
+      mainView.style.display = 'none';
+      previewView.style.display = 'flex';
+      previewView.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--colorNeutralStroke2,#e5e7eb);background:var(--colorNeutralBackground1,#fff);">
+          <button id="btn-back-preview" style="background:none;border:1px solid var(--colorNeutralStroke1,#d1d5db);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:inherit;">← Retour</button>
+          <h2 style="margin:0;font-size:16px;font-weight:600;">${escapeHtml(state.previewTicketId)} — ${escapeHtml(state.previewTitle)}</h2>
+        </div>
+        <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          style="flex:1;width:100%;border:none;background:#fff;"></iframe>
+      `;
+      const frame = document.getElementById('preview-frame');
+      if (frame) { frame.srcdoc = state.previewHtml; }
+      document.getElementById('btn-back-preview').addEventListener('click', async () => {
+        state.previewTicketId = null;
+        state.previewHtml = null;
+        state.previewTitle = null;
+        previewView.style.display = 'none';
+        mainView.style.display = '';
+        try { await app.requestDisplayMode({ mode: 'inline' }); } catch (_) {}
+      });
+    }
+
     async function handleTicketAction(event) {
       const button = event.currentTarget;
       const ticketId = button.dataset.ticketId;
@@ -558,26 +587,23 @@
       }
 
       if (action === 'view') {
-        const prompt = `Montre l'UI du ticket ${ticketId}`;
-        setBanner(`Ouverture de l'UI...`, 'info');
+        setBanner(`Chargement de l'UI...`, 'info');
         try {
-          await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
+          const result = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
+          const data = result?.structuredContent;
+          if (data?.htmlCode) {
+            state.previewTicketId = ticketId;
+            state.previewHtml = data.htmlCode;
+            state.previewTitle = data.title || ticketId;
+            try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+            renderPreview();
+          } else {
+            setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
+          }
         } catch (e) {
-          setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+          setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
         }
         return;
-      }
-
-      state.busyTicketId = ticketId;
-      renderTickets();
-
-      try {
-        // Other actions handled here
-      } catch (error) {
-        setBanner(error instanceof Error ? error.message : 'Operation impossible.', 'error');
-      } finally {
-        state.busyTicketId = null;
-        renderTickets();
       }
     }
 

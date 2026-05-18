@@ -546,7 +546,7 @@
 
           setBanner(`Sauvegarde du ticket ${ticketId}...`, 'info');
           try {
-            await app.callServerTool('updateTicket', { ticketId, title, description, status, priority, assignee });
+            await app.callServerTool({ name: 'updateTicket', arguments: { ticketId, title, description, status, priority, assignee } });
             form.classList.remove('visible');
           } catch (error) {
             setBanner(error instanceof Error ? error.message : 'Erreur de sauvegarde.', 'error');
@@ -627,13 +627,13 @@
       try {
         if (action === 'generate') {
           setBanner(`Generation de la proposition UI pour ${ticketId}...`, 'info');
-          await app.callServerTool('generateUIFromTicket', { ticketId });
+          await app.callServerTool({ name: 'generateUIFromTicket', arguments: { ticketId } });
         } else if (action === 'view' || action === 'edit') {
           setBanner(`Chargement de l'UI du ticket ${ticketId}...`, 'info');
-          await app.callServerTool('getTicket', { ticketId });
+          await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
         } else if (action === 'scratch') {
           setBanner(`Creation d'une UI libre pour ${ticketId}...`, 'info');
-          await app.callServerTool('generateUI', { description: `Interface libre pour le ticket ${ticketId}`, htmlCode: '<html><body><h1>Nouvelle interface</h1></body></html>' });
+          await app.callServerTool({ name: 'generateUI', arguments: { description: `Interface libre pour le ticket ${ticketId}`, htmlCode: '<html><body><h1>Nouvelle interface</h1></body></html>' } });
         }
       } catch (error) {
         setBanner(error instanceof Error ? error.message : 'Operation impossible.', 'error');

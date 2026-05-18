@@ -3,8 +3,8 @@
   "schema_version": "v2.4",
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
-  "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot",
-  "description_for_model": "Plugin de generation d'interfaces web. generateUI cree une interface HTML complete a partir d'une description. updateUI modifie l'interface existante selon les demandes. Le code HTML genere s'affiche dans un widget lateral interactif.",
+  "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
+  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. generateUI cree une interface HTML complete a partir d'une description libre. updateUI modifie l'interface existante. listTickets affiche les tickets disponibles dans un widget de type backlog. getTicket recupere le detail complet d'un ticket. generateUIFromTicket genere et enregistre une proposition UI a partir de la description du ticket. saveUIToTicket sauvegarde une version finale sur le ticket.",
   "functions": [
     {
       "name": "generateUI",
@@ -13,6 +13,22 @@
     {
       "name": "updateUI",
       "description": "Met a jour l'interface existante avec les modifications demandees. Envoyer le code HTML complet mis a jour (pas juste le diff)."
+    },
+    {
+      "name": "listTickets",
+      "description": "Liste les tickets du backlog UI dans un widget type JIRA avec statut, priorite, assignee et etat de la proposition UI."
+    },
+    {
+      "name": "getTicket",
+      "description": "Recupere le detail complet d'un ticket, y compris la proposition UI si elle existe deja."
+    },
+    {
+      "name": "generateUIFromTicket",
+      "description": "Genere une interface HTML/CSS/JS a partir de la description d'un ticket et l'enregistre dans le ticket."
+    },
+    {
+      "name": "saveUIToTicket",
+      "description": "Enregistre la version finale d'une interface HTML/CSS/JS sur un ticket existant."
     }
   ],
   "runtimes": [
@@ -73,22 +89,107 @@
                 "ui": { "resourceUri": "ui://uigenerator/preview.html" },
                 "ui/resourceUri": "ui://uigenerator/preview.html"
               }
+            },
+            {
+              "name": "listTickets",
+              "description": "Liste tous les tickets UI disponibles sans inclure le contenu HTML des propositions UI.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "annotations": { "readOnlyHint": true },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
+              }
+            },
+            {
+              "name": "getTicket",
+              "description": "Recupere le detail complet d'un ticket, y compris la proposition UI si elle existe.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "description": "Identifiant du ticket a consulter (ex: 'US-001')"
+                  }
+                },
+                "required": ["ticketId"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "annotations": { "readOnlyHint": true }
+            },
+            {
+              "name": "generateUIFromTicket",
+              "description": "Genere une interface HTML/CSS/JS a partir de la description d'un ticket et enregistre la proposition UI sur ce ticket.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "description": "Identifiant du ticket source (ex: 'US-001')"
+                  },
+                  "htmlCode": {
+                    "type": "string",
+                    "description": "Code HTML/CSS/JS complet genere a partir de la description du ticket. Doit etre un document HTML valide auto-contenu."
+                  }
+                },
+                "required": ["ticketId", "htmlCode"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+                "ui/resourceUri": "ui://uigenerator/preview.html"
+              }
+            },
+            {
+              "name": "saveUIToTicket",
+              "description": "Enregistre ou remplace la proposition UI HTML/CSS/JS d'un ticket.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "description": "Identifiant du ticket a mettre a jour (ex: 'US-001')"
+                  },
+                  "htmlCode": {
+                    "type": "string",
+                    "description": "Code HTML/CSS/JS complet a sauvegarder sur le ticket."
+                  }
+                },
+                "required": ["ticketId", "htmlCode"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" }
             }
           ]
         }
       },
       "run_for_functions": [
         "generateUI",
-        "updateUI"
+        "updateUI",
+        "listTickets",
+        "getTicket",
+        "generateUIFromTicket",
+        "saveUIToTicket"
       ]
     }
   ],
   "capabilities": {
     "conversation_starters": [
+      { "text": "Montre-moi les tickets UI disponibles" },
       { "text": "Genere un formulaire de contact moderne" },
-      { "text": "Cree un dashboard avec des KPI" },
-      { "text": "Fais une landing page avec hero et features" },
-      { "text": "Genere un tableau de donnees avec recherche" }
+      { "text": "Genere une UI pour le ticket US-001" },
+      { "text": "Fais une landing page avec hero et features" }
     ]
   }
 }

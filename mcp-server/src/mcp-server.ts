@@ -5,19 +5,58 @@ import {
   RESOURCE_MIME_TYPE,
 } from '@modelcontextprotocol/ext-apps/server';
 import { z } from 'zod';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
+
+const ticketSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  priority: z.enum(['High', 'Medium', 'Low']),
+  status: z.enum(['To Do', 'In Progress', 'Done']),
+  assignee: z.string(),
+  uiProposal: z.string().nullable(),
+});
+
+type Ticket = z.infer<typeof ticketSchema>;
+type TicketListItem = Omit<Ticket, 'uiProposal'> & { hasUiProposal: boolean };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const previewWidgetHtml = readFileSync(join(__dirname, '../assets/ui-preview-widget.html'), 'utf8');
+const ticketsListWidgetHtml = readFileSync(join(__dirname, '../assets/tickets-list-widget.html'), 'utf8');
 
 const PREVIEW_URI = 'ui://uigenerator/preview.html';
+const TICKETS_LIST_URI = 'ui://uigenerator/tickets-list.html';
+const TICKETS_PATH = join(__dirname, '../data/tickets.json');
+
+function loadTickets(): Ticket[] {
+  return z.array(ticketSchema).parse(JSON.parse(readFileSync(TICKETS_PATH, 'utf8')));
+}
+
+function saveTickets(tickets: Ticket[]): void {
+  writeFileSync(TICKETS_PATH, JSON.stringify(tickets, null, 2), 'utf8');
+}
+
+function summarizeTickets(tickets: Ticket[]): TicketListItem[] {
+  return tickets.map(({ uiProposal, ...ticket }) => ({
+    ...ticket,
+    hasUiProposal: Boolean(uiProposal),
+  }));
+}
+
+function findTicket(tickets: Ticket[], ticketId: string): { ticket: Ticket; index: number } {
+  const index = tickets.findIndex((ticket) => ticket.id === ticketId);
+  if (index === -1) {
+    throw new Error(`Ticket introuvable: ${ticketId}`);
+  }
+
+  return { ticket: tickets[index], index };
+}
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({ name: 'uigenerator', version: '1.0.0' });
 
-  // Register the preview widget as a resource
   registerAppResource(
     server,
     'UI Preview Widget',
@@ -46,7 +85,29 @@ export function createMcpServer(): McpServer {
     }),
   );
 
-  // Tool: generateUI - creates a new interface from scratch
+  registerAppResource(
+    server,
+    'Tickets List Widget',
+    TICKETS_LIST_URI,
+    { description: 'Widget de gestion des tickets et des propositions UI' },
+    async () => ({
+      contents: [
+        {
+          uri: TICKETS_LIST_URI,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: ticketsListWidgetHtml,
+          _meta: {
+            ui: {
+              csp: {
+                resourceDomains: ['cdn.jsdelivr.net'],
+              },
+            },
+          },
+        },
+      ],
+    }),
+  );
+
   registerAppTool(
     server,
     'generateUI',
@@ -74,7 +135,6 @@ export function createMcpServer(): McpServer {
     },
   );
 
-  // Tool: updateUI - modifies an existing interface
   registerAppTool(
     server,
     'updateUI',
@@ -96,6 +156,129 @@ export function createMcpServer(): McpServer {
           type: 'update',
           description,
           htmlCode,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    'listTickets',
+    {
+      description: 'Liste les tickets du backlog avec leur statut, priorite et disponibilite d\'une proposition UI',
+      inputSchema: {},
+      annotations: { readOnlyHint: true },
+      _meta: {
+        ui: { resourceUri: TICKETS_LIST_URI },
+      },
+    },
+    async () => {
+      const tickets = loadTickets();
+      const summarizedTickets = summarizeTickets(tickets);
+      console.log(`[listTickets] ${summarizedTickets.length} tickets`);
+
+      return {
+        content: [{ type: 'text' as const, text: `${summarizedTickets.length} tickets disponibles.` }],
+        structuredContent: {
+          type: 'ticketList',
+          tickets: summarizedTickets,
+          total: summarizedTickets.length,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    'getTicket',
+    {
+      description: 'Recupere le detail complet d\'un ticket, y compris la proposition UI si elle existe',
+      inputSchema: {
+        ticketId: z.string().describe('Identifiant du ticket a consulter, par exemple US-001'),
+      },
+      annotations: { readOnlyHint: true },
+      _meta: {},
+    },
+    async ({ ticketId }) => {
+      const tickets = loadTickets();
+      const { ticket } = findTicket(tickets, ticketId);
+      console.log(`[getTicket] ${ticketId}`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Ticket ${ticketId} charge.` }],
+        structuredContent: {
+          type: 'ticketDetail',
+          ticket,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    'generateUIFromTicket',
+    {
+      description: 'Genere une interface HTML/CSS/JS a partir de la description d\'un ticket puis enregistre la proposition UI sur ce ticket',
+      inputSchema: {
+        ticketId: z.string().describe('Identifiant du ticket a utiliser comme source, par exemple US-001'),
+        htmlCode: z.string().describe('Code HTML/CSS/JS complet genere a partir de la description du ticket'),
+      },
+      _meta: {
+        ui: { resourceUri: PREVIEW_URI },
+      },
+    },
+    async ({ ticketId, htmlCode }) => {
+      const tickets = loadTickets();
+      const { ticket, index } = findTicket(tickets, ticketId);
+      const updatedTicket: Ticket = { ...ticket, uiProposal: htmlCode };
+      tickets[index] = updatedTicket;
+      saveTickets(tickets);
+      console.log(`[generateUIFromTicket] ${ticketId}`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Proposition UI generee et enregistree pour ${ticketId}.` }],
+        structuredContent: {
+          type: 'generate',
+          ticketId,
+          title: updatedTicket.title,
+          description: updatedTicket.description,
+          htmlCode,
+          ticket: updatedTicket,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    'saveUIToTicket',
+    {
+      description: 'Enregistre ou remplace la proposition UI HTML/CSS/JS d\'un ticket existant',
+      inputSchema: {
+        ticketId: z.string().describe('Identifiant du ticket a mettre a jour, par exemple US-001'),
+        htmlCode: z.string().describe('Code HTML/CSS/JS complet a enregistrer comme proposition UI'),
+      },
+      _meta: {},
+    },
+    async ({ ticketId, htmlCode }) => {
+      const tickets = loadTickets();
+      const { ticket, index } = findTicket(tickets, ticketId);
+      const updatedTicket: Ticket = { ...ticket, uiProposal: htmlCode };
+      tickets[index] = updatedTicket;
+      saveTickets(tickets);
+      console.log(`[saveUIToTicket] ${ticketId}`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Proposition UI enregistree pour ${ticketId}.` }],
+        structuredContent: {
+          type: 'ticketSave',
+          saved: true,
+          ticketId,
+          ticket: updatedTicket,
           timestamp: new Date().toISOString(),
         },
       };

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      color-scheme: light dark;
+      --card-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--colorNeutralBackground2, #f5f7fb);
+      color: var(--colorNeutralForeground1, #1f2937);
+      min-height: 100vh;
+    }
+    .shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--colorBrandBackground, #0f6cbd), #4f6bed);
+      color: #fff;
+      box-shadow: var(--card-shadow);
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .header p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.88);
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .summary-card {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--colorNeutralBackground1, #fff);
+      border: 1px solid var(--colorNeutralStroke2, #e5e7eb);
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+    }
+    .summary-label {
+      display: block;
+      font-size: 11px;
+      color: var(--colorNeutralForeground3, #6b7280);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .summary-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--colorNeutralForeground1, #111827);
+    }
+    .banner {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+    .banner.info {
+      display: block;
+      background: var(--colorPaletteLightBlueBackground2, #eff6ff);
+      border-color: var(--colorPaletteLightBlueBorderActive, #93c5fd);
+      color: var(--colorPaletteRoyalBlueForeground2, #1d4ed8);
+    }
+    .banner.success {
+      display: block;
+      background: var(--colorPaletteLightGreenBackground2, #ecfdf3);
+      border-color: var(--colorPaletteGreenBorderActive, #86efac);
+      color: var(--colorPaletteGreenForeground2, #047857);
+    }
+    .banner.error {
+      display: block;
+      background: var(--colorPaletteRedBackground1, #fef2f2);
+      border-color: var(--colorPaletteRedBorderActive, #fca5a5);
+      color: var(--colorPaletteRedForeground2, #b42318);
+    }
+    .state-card, .detail-panel, .ticket-card {
+      background: var(--colorNeutralBackground1, #fff);
+      border: 1px solid var(--colorNeutralStroke2, #e5e7eb);
+      border-radius: 18px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+    }
+    .state-card {
+      padding: 24px;
+      text-align: center;
+      color: var(--colorNeutralForeground3, #6b7280);
+    }
+    .tickets-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .ticket-card {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .ticket-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .ticket-title {
+      margin: 6px 0 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--colorNeutralForeground1, #111827);
+    }
+    .ticket-id {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--colorBrandBackground2, #dbeafe);
+      color: var(--colorBrandForeground1, #0f6cbd);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.status-todo {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .badge.status-progress {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .badge.status-done {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .badge.priority-high {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .badge.priority-medium {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+    .badge.priority-low {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    .priority-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+    .assignee {
+      font-size: 12px;
+      color: var(--colorNeutralForeground2, #4b5563);
+      font-weight: 600;
+    }
+    .ticket-description {
+      font-size: 13px;
+      color: var(--colorNeutralForeground2, #4b5563);
+      line-height: 1.5;
+    }
+    .ticket-description p {
+      margin: 0;
+    }
+    .btn-expand {
+      background: none;
+      border: none;
+      color: var(--colorBrandForeground1, #0f6cbd);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-top: 4px;
+    }
+    .btn-expand:hover { text-decoration: underline; }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .detail-panel {
+      display: none;
+      padding: 16px;
+      gap: 12px;
+    }
+    .detail-panel.visible {
+      display: grid;
+    }
+    .detail-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .detail-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .detail-description {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--colorNeutralForeground2, #4b5563);
+    }
+    .preview-shell {
+      min-height: 220px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--colorNeutralStroke2, #e5e7eb);
+      background: linear-gradient(180deg, rgba(15,108,189,0.04), rgba(79,107,237,0.02));
+    }
+    .preview-shell iframe {
+      width: 100%;
+      min-height: 320px;
+      border: none;
+      background: #fff;
+    }
+    .preview-empty {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      padding: 20px;
+      text-align: center;
+      color: var(--colorNeutralForeground3, #6b7280);
+      font-size: 13px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    @media (max-width: 640px) {
+      .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .header, .ticket-top, .detail-header {
+        flex-direction: column;
+      }
+      .actions {
+        justify-content: stretch;
+      }
+      .actions fluent-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="header">
+      <div>
+        <h1>Ticket Board</h1>
+        <p>Backlog UI type JIRA pour generer et suivre les propositions HTML.</p>
+      </div>
+      <div class="ticket-id">UI Generator</div>
+    </section>
+
+    <section class="summary" id="summary"></section>
+    <div class="banner hidden" id="banner"></div>
+    <section class="state-card" id="loading">Chargement des tickets...</section>
+    <section class="state-card hidden" id="empty">Aucun ticket disponible.</section>
+    <section class="tickets-grid hidden" id="tickets"></section>
+    <section class="detail-panel" id="detail"></section>
+  </div>
+
+  <script type="module">
+    import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
+    import { provideFluentDesignSystem, fluentButton } from 'https://cdn.jsdelivr.net/npm/@fluentui/web-components@2.6.1/+esm';
+    import { webLightTheme, webDarkTheme } from 'https://cdn.jsdelivr.net/npm/@fluentui/tokens/+esm';
+
+    provideFluentDesignSystem().register(fluentButton());
+
+    const app = new App({ name: 'tickets-list', version: '1.0.0' });
+    const state = {
+      tickets: [],
+      selectedTicket: null,
+      busyTicketId: null,
+      isLoaded: false,
+    };
+
+    const summaryEl = document.getElementById('summary');
+    const bannerEl = document.getElementById('banner');
+    const loadingEl = document.getElementById('loading');
+    const emptyEl = document.getElementById('empty');
+    const ticketsEl = document.getElementById('tickets');
+    const detailEl = document.getElementById('detail');
+
+    function escapeHtml(value = '') {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function applyTheme(theme) {
+      const tokens = theme === 'dark' ? webDarkTheme : webLightTheme;
+      const root = document.documentElement;
+      for (const [token, value] of Object.entries(tokens)) {
+        root.style.setProperty('--' + token, value);
+      }
+      document.body.style.background = theme === 'dark'
+        ? 'var(--colorNeutralBackground2, #111827)'
+        : 'var(--colorNeutralBackground2, #f5f7fb)';
+      document.body.style.color = theme === 'dark'
+        ? 'var(--colorNeutralForeground1, #f9fafb)'
+        : 'var(--colorNeutralForeground1, #111827)';
+    }
+
+    function setBanner(message = '', tone = 'info') {
+      if (!message) {
+        bannerEl.className = 'banner hidden';
+        bannerEl.textContent = '';
+        return;
+      }
+      bannerEl.className = `banner ${tone}`;
+      bannerEl.textContent = message;
+    }
+
+    function normalizeStatus(status) {
+      if (status === 'In Progress') return 'status-progress';
+      if (status === 'Done') return 'status-done';
+      return 'status-todo';
+    }
+
+    function normalizePriority(priority) {
+      if (priority === 'High') return 'priority-high';
+      if (priority === 'Medium') return 'priority-medium';
+      return 'priority-low';
+    }
+
+    function updateSummary() {
+      const total = state.tickets.length;
+      const inProgress = state.tickets.filter((ticket) => ticket.status === 'In Progress').length;
+      const todo = state.tickets.filter((ticket) => ticket.status === 'To Do').length;
+      const ready = state.tickets.filter((ticket) => ticket.hasUiProposal).length;
+
+      summaryEl.innerHTML = [
+        ['Total', total],
+        ['In Progress', inProgress],
+        ['To Do', todo],
+        ['UI Ready', ready],
+      ].map(([label, value]) => `
+        <div class="summary-card">
+          <span class="summary-label">${label}</span>
+          <span class="summary-value">${value}</span>
+        </div>
+      `).join('');
+    }
+
+    function truncateDescription(desc = '', maxLen = 80) {
+      if (desc.length <= maxLen) return { short: desc, isTruncated: false };
+      return { short: desc.substring(0, maxLen) + '...', isTruncated: true };
+    }
+
+    function renderTickets() {
+      updateSummary();
+
+      const hasTickets = state.tickets.length > 0;
+      loadingEl.classList.toggle('hidden', state.isLoaded);
+      emptyEl.classList.toggle('hidden', !state.isLoaded || hasTickets);
+      ticketsEl.classList.toggle('hidden', !state.isLoaded || !hasTickets);
+
+      if (!state.isLoaded || !hasTickets) {
+        ticketsEl.innerHTML = '';
+        return;
+      }
+
+      ticketsEl.innerHTML = state.tickets.map((ticket) => {
+        const busy = state.busyTicketId === ticket.id;
+        const { short, isTruncated } = truncateDescription(ticket.description);
+
+        return `
+          <article class="ticket-card">
+            <div class="ticket-top">
+              <div>
+                <span class="ticket-id">${escapeHtml(ticket.id)}</span>
+                <h2 class="ticket-title">${escapeHtml(ticket.title)}</h2>
+              </div>
+              <div class="meta-row">
+                <span class="badge ${normalizeStatus(ticket.status)}">${escapeHtml(ticket.status)}</span>
+                <span class="badge ${normalizePriority(ticket.priority)}"><span class="priority-dot"></span>${escapeHtml(ticket.priority)}</span>
+              </div>
+            </div>
+            <div class="ticket-description">
+              <p class="desc-short">${escapeHtml(short)}</p>
+              ${isTruncated ? `<p class="desc-full hidden">${escapeHtml(ticket.description)}</p>
+              <button class="btn-expand" data-ticket-id="${escapeHtml(ticket.id)}">Voir plus ▾</button>` : ''}
+            </div>
+            <div class="assignee">Assignee: ${escapeHtml(ticket.assignee)}</div>
+            <div class="actions">
+              ${ticket.hasUiProposal ? `
+                <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="view" data-ticket-id="${escapeHtml(ticket.id)}">
+                  📋 Voir l'UI
+                </fluent-button>
+                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="edit" data-ticket-id="${escapeHtml(ticket.id)}">
+                  ✏️ Editer l'UI
+                </fluent-button>
+              ` : `
+                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="generate" data-ticket-id="${escapeHtml(ticket.id)}">
+                  🎨 Generer UI depuis la story
+                </fluent-button>
+              `}
+              <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="scratch" data-ticket-id="${escapeHtml(ticket.id)}">
+                ➕ Creer UI from scratch
+              </fluent-button>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      // Expand/collapse description
+      ticketsEl.querySelectorAll('.btn-expand').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const card = e.target.closest('.ticket-card');
+          const shortEl = card.querySelector('.desc-short');
+          const fullEl = card.querySelector('.desc-full');
+          const isExpanded = !fullEl.classList.contains('hidden');
+          fullEl.classList.toggle('hidden');
+          shortEl.classList.toggle('hidden');
+          e.target.textContent = isExpanded ? 'Voir plus ▾' : 'Voir moins ▴';
+        });
+      });
+
+      // Action buttons
+      ticketsEl.querySelectorAll('[data-action]').forEach((button) => {
+        button.addEventListener('click', handleTicketAction);
+      });
+    }
+
+    function renderDetail() {
+      const ticket = state.selectedTicket;
+      if (!ticket) {
+        detailEl.className = 'detail-panel';
+        detailEl.innerHTML = '';
+        return;
+      }
+
+      const preview = ticket.uiProposal
+        ? `<div class="preview-shell"><iframe sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="Preview UI"></iframe></div>`
+        : `<div class="preview-empty">Aucune proposition UI enregistree pour ce ticket.</div>`;
+
+      detailEl.className = 'detail-panel visible';
+      detailEl.innerHTML = `
+        <div class="detail-header">
+          <div>
+            <span class="ticket-id">${escapeHtml(ticket.id)}</span>
+            <h3 class="detail-title">${escapeHtml(ticket.title)}</h3>
+          </div>
+          <div class="meta-row">
+            <span class="badge ${normalizeStatus(ticket.status)}">${escapeHtml(ticket.status)}</span>
+            <span class="badge ${normalizePriority(ticket.priority)}"><span class="priority-dot"></span>${escapeHtml(ticket.priority)}</span>
+          </div>
+        </div>
+        <div class="assignee">Assignee: ${escapeHtml(ticket.assignee)}</div>
+        <p class="detail-description">${escapeHtml(ticket.description)}</p>
+        ${preview}
+      `;
+
+      if (ticket.uiProposal) {
+        const frame = detailEl.querySelector('iframe');
+        if (frame) {
+          frame.srcdoc = ticket.uiProposal;
+        }
+      }
+    }
+
+    function upsertTicketSummary(ticket) {
+      const summary = {
+        id: ticket.id,
+        title: ticket.title,
+        description: ticket.description,
+        priority: ticket.priority,
+        status: ticket.status,
+        assignee: ticket.assignee,
+        hasUiProposal: Boolean(ticket.uiProposal),
+      };
+      const index = state.tickets.findIndex((item) => item.id === ticket.id);
+      if (index === -1) {
+        state.tickets.unshift(summary);
+      } else {
+        state.tickets[index] = { ...state.tickets[index], ...summary };
+      }
+    }
+
+    async function handleTicketAction(event) {
+      const button = event.currentTarget;
+      const ticketId = button.dataset.ticketId;
+      const action = button.dataset.action;
+      if (!ticketId || !action) return;
+
+      state.busyTicketId = ticketId;
+      renderTickets();
+
+      try {
+        if (action === 'generate') {
+          setBanner(`Generation de la proposition UI pour ${ticketId}...`, 'info');
+          await app.callServerTool('generateUIFromTicket', { ticketId });
+        } else if (action === 'view' || action === 'edit') {
+          setBanner(`Chargement de l'UI du ticket ${ticketId}...`, 'info');
+          await app.callServerTool('getTicket', { ticketId });
+        } else if (action === 'scratch') {
+          setBanner(`Creation d'une UI libre pour ${ticketId}...`, 'info');
+          await app.callServerTool('generateUI', { description: `Interface libre pour le ticket ${ticketId}`, htmlCode: '<html><body><h1>Nouvelle interface</h1></body></html>' });
+        }
+      } catch (error) {
+        setBanner(error instanceof Error ? error.message : 'Operation impossible.', 'error');
+      } finally {
+        state.busyTicketId = null;
+        renderTickets();
+      }
+    }
+
+    function handleToolResult(result) {
+      const data = result?.structuredContent;
+      if (!data) {
+        return;
+      }
+
+      if (Array.isArray(data.tickets)) {
+        state.isLoaded = true;
+        state.tickets = data.tickets;
+        setBanner(`${data.tickets.length} tickets charges.`, 'success');
+        renderTickets();
+        renderDetail();
+        return;
+      }
+
+      if (data.ticket) {
+        upsertTicketSummary(data.ticket);
+        state.selectedTicket = data.ticket;
+        setBanner(`Ticket ${data.ticket.id} charge.`, 'success');
+        renderTickets();
+        renderDetail();
+        return;
+      }
+
+      if (data.ticketId && data.htmlCode) {
+        const fallback = state.tickets.find((ticket) => ticket.id === data.ticketId);
+        const generatedTicket = data.ticket ?? {
+          id: data.ticketId,
+          title: data.title ?? fallback?.title ?? data.ticketId,
+          description: data.description ?? fallback?.description ?? '',
+          priority: fallback?.priority ?? 'Medium',
+          status: fallback?.status ?? 'In Progress',
+          assignee: fallback?.assignee ?? 'Non assigne',
+          uiProposal: data.htmlCode,
+        };
+
+        upsertTicketSummary(generatedTicket);
+        state.selectedTicket = generatedTicket;
+        setBanner(`Proposition UI prete pour ${data.ticketId}.`, 'success');
+        renderTickets();
+        renderDetail();
+        return;
+      }
+
+      if (data.saved && data.ticketId) {
+        if (data.ticket) {
+          upsertTicketSummary(data.ticket);
+          state.selectedTicket = data.ticket;
+        }
+        setBanner(`Proposition UI sauvegardee pour ${data.ticketId}.`, 'success');
+        renderTickets();
+        renderDetail();
+      }
+    }
+
+    app.ontoolresult = handleToolResult;
+    app.onhostcontextchanged = (context) => {
+      if (context.theme) {
+        applyTheme(context.theme);
+      }
+    };
+    app.onteardown = () => ({});
+
+    await app.connect();
+
+    const hostContext = app.getHostContext();
+    if (hostContext?.theme) {
+      applyTheme(hostContext.theme);
+    } else {
+      applyTheme('light');
+    }
+
+    renderTickets();
+    renderDetail();
+  </script>
+</body>
+</html>

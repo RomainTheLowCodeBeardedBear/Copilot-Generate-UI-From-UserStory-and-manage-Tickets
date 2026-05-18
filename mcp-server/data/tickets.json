@@ -1,0 +1,29 @@
+[
+  {
+    "id": "US-001",
+    "title": "Login Page",
+    "description": "As a user, I want a login page with email and password fields, a 'Remember me' checkbox, a 'Forgot password?' link, and a submit button. The page should have a modern and clean design with form validation.",
+    "priority": "High",
+    "status": "In Progress",
+    "assignee": "Marie Dupont",
+    "uiProposal": null
+  },
+  {
+    "id": "US-002",
+    "title": "Landing Page Hero Section",
+    "description": "As a visitor, I want a hero section for our SaaS product landing page with a catchy headline, a subtitle describing the value proposition, a call-to-action button, and a background gradient or illustration. It should feel modern, bold, and inspiring.",
+    "priority": "Medium",
+    "status": "To Do",
+    "assignee": "Thomas Martin",
+    "uiProposal": null
+  },
+  {
+    "id": "US-003",
+    "title": "Contact Form",
+    "description": "As a user, I want a contact form with fields for name, email, subject, and message. Include form validation, a send button with loading state, and a success message after submission. Add a map or address section next to the form.",
+    "priority": "Low",
+    "status": "To Do",
+    "assignee": "Sophie Bernard",
+    "uiProposal": null
+  }
+]

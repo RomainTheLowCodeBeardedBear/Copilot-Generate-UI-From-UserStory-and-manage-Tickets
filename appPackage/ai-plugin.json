@@ -4,7 +4,7 @@
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
   "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. generateUI cree une interface HTML complete a partir d'une description libre. updateUI modifie l'interface existante. listTickets affiche les tickets disponibles dans un widget de type backlog. getTicket recupere le detail complet d'un ticket. generateUIFromTicket genere et enregistre une proposition UI a partir de la description du ticket. saveUIToTicket sauvegarde une version finale sur le ticket.",
+  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. generateUI cree une interface HTML complete a partir d'une description libre. updateUI modifie l'interface existante. listTickets affiche les tickets disponibles dans un widget de type backlog. getTicket recupere le detail complet d'un ticket. generateUIFromTicket genere et enregistre une proposition UI a partir de la description du ticket. saveUIToTicket sauvegarde une version finale sur le ticket. viewTicketUI affiche la proposition UI existante d'un ticket dans le panneau lateral.",
   "functions": [
     {
       "name": "generateUI",
@@ -37,6 +37,10 @@
     {
       "name": "resetTickets",
       "description": "Reinitialise tous les tickets a leur etat initial pour refaire une demo propre."
+    },
+    {
+      "name": "viewTicketUI",
+      "description": "Affiche la proposition UI d'un ticket dans le panneau de preview lateral."
     }
   ],
   "runtimes": [
@@ -237,6 +241,28 @@
                 "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
                 "ui/resourceUri": "ui://uigenerator/tickets-list.html"
               }
+            },
+            {
+              "name": "viewTicketUI",
+              "description": "Affiche la proposition UI d'un ticket dans le panneau de preview lateral.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "description": "Identifiant du ticket dont on veut voir l'UI (ex: 'US-001')"
+                  }
+                },
+                "required": ["ticketId"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "annotations": { "readOnlyHint": true },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+                "ui/resourceUri": "ui://uigenerator/preview.html"
+              }
             }
           ]
         }
@@ -249,7 +275,8 @@
         "generateUIFromTicket",
         "saveUIToTicket",
         "updateTicket",
-        "resetTickets"
+        "resetTickets",
+        "viewTicketUI"
       ]
     }
   ],

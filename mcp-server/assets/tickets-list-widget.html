@@ -489,17 +489,17 @@
                 <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="view" data-ticket-id="${escapeHtml(ticket.id)}">
                   📋 Voir l'UI
                 </fluent-button>
-                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="edit" data-ticket-id="${escapeHtml(ticket.id)}">
-                  ✏️ Editer l'UI
+                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="generate" data-ticket-id="${escapeHtml(ticket.id)}">
+                  🔄 Regenerer l'UI
                 </fluent-button>
               ` : `
                 <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="generate" data-ticket-id="${escapeHtml(ticket.id)}">
                   🎨 Generer UI depuis la story
                 </fluent-button>
+                <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="scratch" data-ticket-id="${escapeHtml(ticket.id)}">
+                  ➕ Creer UI from scratch
+                </fluent-button>
               `}
-              <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="scratch" data-ticket-id="${escapeHtml(ticket.id)}">
-                ➕ Creer UI from scratch
-              </fluent-button>
             </div>
           </article>
         `;
@@ -631,19 +631,33 @@
       const action = button.dataset.action;
       if (!ticketId || !action) return;
 
+      if (action === 'generate' || action === 'scratch') {
+        // These actions require the LLM to generate HTML code - widget cannot do that.
+        const prompt = action === 'scratch'
+          ? `Cree une interface libre pour le ticket ${ticketId}`
+          : `Genere l'UI du ticket ${ticketId}`;
+        setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+        return;
+      }
+
       state.busyTicketId = ticketId;
       renderTickets();
 
       try {
-        if (action === 'generate') {
-          setBanner(`Generation de la proposition UI pour ${ticketId}...`, 'info');
-          await app.callServerTool({ name: 'generateUIFromTicket', arguments: { ticketId } });
-        } else if (action === 'view' || action === 'edit') {
+        if (action === 'view') {
           setBanner(`Chargement de l'UI du ticket ${ticketId}...`, 'info');
-          await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
-        } else if (action === 'scratch') {
-          setBanner(`Creation d'une UI libre pour ${ticketId}...`, 'info');
-          await app.callServerTool({ name: 'generateUI', arguments: { description: `Interface libre pour le ticket ${ticketId}`, htmlCode: '<html><body><h1>Nouvelle interface</h1></body></html>' } });
+          const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
+          // Use the result directly to show detail panel
+          const ticket = result?.structuredContent?.ticket;
+          if (ticket) {
+            upsertTicketSummary(ticket);
+            state.selectedTicket = ticket;
+            setBanner(`UI du ticket ${ticketId} chargee.`, 'success');
+            renderTickets();
+            renderDetail();
+          } else {
+            setBanner(`Aucune donnee recue pour ${ticketId}.`, 'error');
+          }
         }
       } catch (error) {
         setBanner(error instanceof Error ? error.message : 'Operation impossible.', 'error');

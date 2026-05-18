@@ -702,18 +702,19 @@
 
       try {
         if (action === 'view') {
-          setBanner(`Chargement de l'UI du ticket ${ticketId}...`, 'info');
-          const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
-          // Use the result directly to show detail panel
-          const fullTicket = result?.structuredContent?.ticket;
-          if (fullTicket) {
-            upsertTicketSummary(fullTicket);
-            state.selectedTicket = fullTicket;
-            setBanner(`UI du ticket ${ticketId} chargee.`, 'success');
+          setBanner(`Ouverture de l'UI du ticket ${ticketId}...`, 'info');
+          const result = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
+          // Also update local split panel as fallback
+          const fullTicket = result?.structuredContent;
+          if (fullTicket && fullTicket.htmlCode) {
+            const localTicket = { id: fullTicket.ticketId || ticketId, title: fullTicket.title || '', description: fullTicket.description || '', priority: 'Medium', status: 'In Progress', assignee: '', uiProposal: fullTicket.htmlCode };
+            upsertTicketSummary(localTicket);
+            state.selectedTicket = localTicket;
+            setBanner(`UI du ticket ${ticketId} ouverte.`, 'success');
             renderTickets();
             renderDetail();
           } else {
-            setBanner(`Aucune donnee recue pour ${ticketId}.`, 'error');
+            setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
           }
         }
       } catch (error) {

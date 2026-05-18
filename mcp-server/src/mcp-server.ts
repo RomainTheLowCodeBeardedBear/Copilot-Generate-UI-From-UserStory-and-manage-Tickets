@@ -220,6 +220,40 @@ export function createMcpServer(): McpServer {
 
   registerAppTool(
     server,
+    'viewTicketUI',
+    {
+      description: 'Affiche la proposition UI d\'un ticket dans le panneau de preview lateral',
+      inputSchema: {
+        ticketId: z.string().describe('Identifiant du ticket dont on veut voir l\'UI, par exemple US-001'),
+      },
+      annotations: { readOnlyHint: true },
+      _meta: {
+        ui: { resourceUri: PREVIEW_URI },
+      },
+    },
+    async ({ ticketId }) => {
+      const tickets = loadTickets();
+      const { ticket } = findTicket(tickets, ticketId);
+      console.log(`[viewTicketUI] ${ticketId}`);
+
+      const htmlCode = ticket.uiProposal || '<html><body><p>Aucune UI disponible pour ce ticket.</p></body></html>';
+
+      return {
+        content: [{ type: 'text' as const, text: `UI du ticket ${ticketId} affichee.` }],
+        structuredContent: {
+          type: 'generate',
+          ticketId,
+          title: ticket.title,
+          description: ticket.description,
+          htmlCode,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
     'generateUIFromTicket',
     {
       description: 'Genere une interface HTML/CSS/JS a partir de la description d\'un ticket puis enregistre la proposition UI sur ce ticket',

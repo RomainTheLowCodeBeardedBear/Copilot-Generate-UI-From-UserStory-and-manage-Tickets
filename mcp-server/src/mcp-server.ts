@@ -5,7 +5,7 @@ import {
   RESOURCE_MIME_TYPE,
 } from '@modelcontextprotocol/ext-apps/server';
 import { z } from 'zod';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname, resolve } from 'node:path';
 
@@ -29,6 +29,7 @@ const ticketsListWidgetHtml = readFileSync(join(__dirname, '../assets/tickets-li
 const PREVIEW_URI = 'ui://uigenerator/preview.html';
 const TICKETS_LIST_URI = 'ui://uigenerator/tickets-list.html';
 const TICKETS_PATH = join(__dirname, '../data/tickets.json');
+const TICKETS_DEFAULT_PATH = join(__dirname, '../data/tickets-default.json');
 
 function loadTickets(): Ticket[] {
   return z.array(ticketSchema).parse(JSON.parse(readFileSync(TICKETS_PATH, 'utf8')));
@@ -322,6 +323,34 @@ export function createMcpServer(): McpServer {
         structuredContent: {
           type: 'ticketUpdated',
           ticket: { ...updatedTicket, uiProposal: undefined, hasUiProposal: Boolean(updatedTicket.uiProposal) },
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    'resetTickets',
+    {
+      description: 'Reinitialise les tickets a leur etat initial pour refaire une demo propre',
+      inputSchema: {},
+      _meta: {
+        ui: { resourceUri: TICKETS_LIST_URI },
+      },
+    },
+    async () => {
+      copyFileSync(TICKETS_DEFAULT_PATH, TICKETS_PATH);
+      const tickets = loadTickets();
+      const summarizedTickets = summarizeTickets(tickets);
+      console.log(`[resetTickets] Reset to ${summarizedTickets.length} tickets`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Tickets reinitialises (${summarizedTickets.length} tickets).` }],
+        structuredContent: {
+          type: 'ticketList',
+          tickets: summarizedTickets,
+          total: summarizedTickets.length,
           timestamp: new Date().toISOString(),
         },
       };

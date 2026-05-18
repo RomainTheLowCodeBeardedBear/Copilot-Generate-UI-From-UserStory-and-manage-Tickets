@@ -33,6 +33,10 @@
     {
       "name": "updateTicket",
       "description": "Met a jour les champs d'un ticket (titre, description, statut, priorite, assignee)."
+    },
+    {
+      "name": "resetTickets",
+      "description": "Reinitialise tous les tickets a leur etat initial pour refaire une demo propre."
     }
   ],
   "runtimes": [
@@ -217,6 +221,22 @@
                 "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
                 "ui/resourceUri": "ui://uigenerator/tickets-list.html"
               }
+            },
+            {
+              "name": "resetTickets",
+              "description": "Reinitialise tous les tickets a leur etat initial de demo. Remet les statuts, descriptions et propositions UI a zero.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
+              }
             }
           ]
         }
@@ -228,7 +248,8 @@
         "getTicket",
         "generateUIFromTicket",
         "saveUIToTicket",
-        "updateTicket"
+        "updateTicket",
+        "resetTickets"
       ]
     }
   ],

@@ -318,7 +318,10 @@
         <h1>Ticket Board</h1>
         <p>Backlog UI type JIRA pour generer et suivre les propositions HTML.</p>
       </div>
-      <div class="ticket-id">UI Generator</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="btn-reset" title="Reset Demo" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.03em;">🔄 Reset Demo</button>
+        <div class="ticket-id">UI Generator</div>
+      </div>
     </section>
 
     <section class="summary" id="summary"></section>
@@ -732,6 +735,28 @@
     app.onteardown = () => ({});
 
     await app.connect();
+
+    // Reset Demo button
+    document.getElementById('btn-reset').addEventListener('click', async () => {
+      setBanner('Reinitialisation des tickets...', 'info');
+      try {
+        const result = await app.callServerTool({ name: 'resetTickets', arguments: {} });
+        // Update local state from response
+        if (result?.structuredContent?.tickets) {
+          state.tickets = result.structuredContent.tickets;
+          state.selectedTicket = null;
+          setBanner('Demo reinitalisee !', 'success');
+          renderTickets();
+          renderDetail();
+        } else {
+          // Fallback: re-list
+          await app.callServerTool({ name: 'listTickets', arguments: {} });
+          setBanner('Demo reinitalisee !', 'success');
+        }
+      } catch (error) {
+        setBanner(error instanceof Error ? error.message : 'Erreur lors du reset.', 'error');
+      }
+    });
 
     const hostContext = app.getHostContext();
     if (hostContext?.theme) {

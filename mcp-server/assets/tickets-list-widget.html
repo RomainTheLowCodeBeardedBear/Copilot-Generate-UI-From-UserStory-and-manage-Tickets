@@ -599,6 +599,12 @@
           state.previewHtml = data.htmlCode;
           state.previewTitle = data.title || ticketId;
           savePreviewState(ticketId);
+          // Inject the HTML into the LLM context so it can modify it
+          try {
+            await app.updateModelContext({
+              content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${data.title || ''}). Voici le code HTML actuel de cette UI :\n\n${data.htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+            });
+          } catch (_) {}
           try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
           renderPreview();
         } else {
@@ -620,6 +626,18 @@
           ? `Cree une interface libre pour le ticket ${ticketId}`
           : `Genere l'UI du ticket ${ticketId}`;
         setBanner(`Envoi de la demande...`, 'info');
+        // If ticket already has UI (regenerate), inject current HTML as context
+        const ticket = state.tickets.find(t => t.id === ticketId);
+        if (ticket?.hasUiProposal && action === 'generate') {
+          try {
+            const existing = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
+            if (existing?.structuredContent?.htmlCode) {
+              await app.updateModelContext({
+                content: [{ type: 'text', text: `Le ticket ${ticketId} a deja une UI. Code HTML actuel :\n\n${existing.structuredContent.htmlCode}\n\nRegenere une nouvelle version amelioree.` }]
+              });
+            }
+          } catch (_) {}
+        }
         try {
           await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
         } catch (e) {

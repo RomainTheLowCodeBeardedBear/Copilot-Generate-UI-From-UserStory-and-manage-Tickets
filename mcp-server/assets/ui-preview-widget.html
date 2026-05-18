@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet">
+    <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
@@ -137,15 +139,22 @@
       overflow: auto;
       background: #1e1e1e;
     }
-    .code-container pre {
+    .code-container pre[class*="language-"] {
       margin: 0;
       padding: 16px;
+      padding-left: 3.5em;
       font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
       font-size: 12px;
       line-height: 1.6;
-      color: #d4d4d4;
+      background: #1e1e1e;
+      border-radius: 0;
       white-space: pre-wrap;
       word-break: break-word;
+    }
+    .code-container code[class*="language-"] {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
     }
     .btn-copy {
       position: absolute;
@@ -218,7 +227,7 @@
 
   <div class="code-container" id="code-view">
     <button class="btn-copy" id="btn-copy">Copier</button>
-    <pre><code id="code-content"></code></pre>
+    <pre class="line-numbers language-html"><code class="language-html" id="code-content"></code></pre>
   </div>
 
   <div class="info-bar" id="info-bar"></div>
@@ -227,6 +236,12 @@
     <div style="font-size: 24px;">&#9888;</div>
     <div id="error-message">Erreur</div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 
   <script type="module">
     import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
@@ -256,6 +271,7 @@
         previewEl.style.display = 'none';
         codeView.style.display = 'block';
         codeContent.textContent = currentHtmlCode;
+        Prism.highlightElement(codeContent);
         btnToggle.classList.add('active');
         btnToggle.querySelector('span')?.remove();
         btnToggle.insertAdjacentHTML('beforeend', '<span>Apercu</span>');
@@ -335,6 +351,7 @@
         previewEl.style.display = 'none';
         codeView.style.display = 'block';
         codeContent.textContent = htmlCode;
+        Prism.highlightElement(codeContent);
       } else {
         previewEl.style.display = 'block';
         codeView.style.display = 'none';

@@ -542,6 +542,28 @@
       }
     }
 
+    // ── localStorage helpers (cross-iframe state for fullscreen) ──
+    function savePreviewState(ticketId) {
+      try {
+        localStorage.setItem('uigen_preview_id', ticketId);
+        localStorage.setItem('uigen_preview_ts', String(Date.now()));
+      } catch (_) {}
+    }
+    function loadPreviewState() {
+      try {
+        const id = localStorage.getItem('uigen_preview_id');
+        const ts = localStorage.getItem('uigen_preview_ts');
+        if (id && ts && (Date.now() - parseInt(ts, 10)) < 10000) return id;
+      } catch (_) {}
+      return null;
+    }
+    function clearPreviewState() {
+      try {
+        localStorage.removeItem('uigen_preview_id');
+        localStorage.removeItem('uigen_preview_ts');
+      } catch (_) {}
+    }
+
     function renderPreview() {
       const mainView = document.getElementById('main-view');
       const previewView = document.getElementById('preview-view');
@@ -561,10 +583,30 @@
         state.previewTicketId = null;
         state.previewHtml = null;
         state.previewTitle = null;
+        clearPreviewState();
         previewView.style.display = 'none';
         mainView.style.display = '';
         try { await app.requestDisplayMode({ mode: 'inline' }); } catch (_) {}
       });
+    }
+
+    async function openPreview(ticketId) {
+      try {
+        const result = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
+        const data = result?.structuredContent;
+        if (data?.htmlCode) {
+          state.previewTicketId = ticketId;
+          state.previewHtml = data.htmlCode;
+          state.previewTitle = data.title || ticketId;
+          savePreviewState(ticketId);
+          try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+          renderPreview();
+        } else {
+          setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
+        }
+      } catch (e) {
+        setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
+      }
     }
 
     async function handleTicketAction(event) {
@@ -587,22 +629,7 @@
       }
 
       if (action === 'view') {
-        setBanner(`Chargement de l'UI...`, 'info');
-        try {
-          const result = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
-          const data = result?.structuredContent;
-          if (data?.htmlCode) {
-            state.previewTicketId = ticketId;
-            state.previewHtml = data.htmlCode;
-            state.previewTitle = data.title || ticketId;
-            try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
-            renderPreview();
-          } else {
-            setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
-          }
-        } catch (e) {
-          setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
-        }
+        await openPreview(ticketId);
         return;
       }
     }
@@ -613,11 +640,16 @@
         return;
       }
 
+      // If we're in preview mode, only update ticket data silently (don't re-render list)
+      const inPreview = state.previewTicketId !== null;
+
       if (Array.isArray(data.tickets)) {
         state.isLoaded = true;
         state.tickets = data.tickets;
-        setBanner(`${data.tickets.length} tickets charges.`, 'success');
-        renderTickets();
+        if (!inPreview) {
+          setBanner(`${data.tickets.length} tickets charges.`, 'success');
+          renderTickets();
+        }
         return;
       }
 
@@ -633,15 +665,19 @@
         };
         const idx = state.tickets.findIndex((t) => t.id === data.ticket.id);
         if (idx !== -1) { state.tickets[idx] = updatedSummary; }
-        setBanner(`Ticket ${data.ticket.id} mis a jour.`, 'success');
-        renderTickets();
+        if (!inPreview) {
+          setBanner(`Ticket ${data.ticket.id} mis a jour.`, 'success');
+          renderTickets();
+        }
         return;
       }
 
       if (data.ticket) {
         upsertTicketSummary(data.ticket);
-        setBanner(`Ticket ${data.ticket.id} charge.`, 'success');
-        renderTickets();
+        if (!inPreview) {
+          setBanner(`Ticket ${data.ticket.id} charge.`, 'success');
+          renderTickets();
+        }
         return;
       }
 
@@ -658,8 +694,10 @@
         };
 
         upsertTicketSummary(generatedTicket);
-        setBanner(`Proposition UI prete pour ${data.ticketId}.`, 'success');
-        renderTickets();
+        if (!inPreview) {
+          setBanner(`Proposition UI prete pour ${data.ticketId}.`, 'success');
+          renderTickets();
+        }
         return;
       }
 
@@ -667,8 +705,10 @@
         if (data.ticket) {
           upsertTicketSummary(data.ticket);
         }
-        setBanner(`Proposition UI sauvegardee pour ${data.ticketId}.`, 'success');
-        renderTickets();
+        if (!inPreview) {
+          setBanner(`Proposition UI sauvegardee pour ${data.ticketId}.`, 'success');
+          renderTickets();
+        }
       }
     }
 
@@ -709,7 +749,14 @@
       applyTheme('light');
     }
 
-    renderTickets();
+    // Check if we should restore preview mode (widget re-created in fullscreen)
+    const pendingPreviewId = loadPreviewState();
+    if (pendingPreviewId) {
+      clearPreviewState();
+      await openPreview(pendingPreviewId);
+    } else {
+      renderTickets();
+    }
   </script>
 </body>
 </html>

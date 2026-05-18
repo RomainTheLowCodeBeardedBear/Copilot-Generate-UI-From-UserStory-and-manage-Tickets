@@ -631,12 +631,17 @@
       const action = button.dataset.action;
       if (!ticketId || !action) return;
 
+      const ticket = state.tickets.find((t) => t.id === ticketId);
+
       if (action === 'generate' || action === 'scratch') {
-        // These actions require the LLM to generate HTML code - widget cannot do that.
+        // Show instructions panel on the right
         const prompt = action === 'scratch'
           ? `Cree une interface libre pour le ticket ${ticketId}`
           : `Genere l'UI du ticket ${ticketId}`;
-        setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+        state.selectedTicket = null;
+        renderDetail();
+        showInstructionPanel(ticket, prompt, action);
+        setBanner('');
         return;
       }
 
@@ -648,10 +653,10 @@
           setBanner(`Chargement de l'UI du ticket ${ticketId}...`, 'info');
           const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
           // Use the result directly to show detail panel
-          const ticket = result?.structuredContent?.ticket;
-          if (ticket) {
-            upsertTicketSummary(ticket);
-            state.selectedTicket = ticket;
+          const fullTicket = result?.structuredContent?.ticket;
+          if (fullTicket) {
+            upsertTicketSummary(fullTicket);
+            state.selectedTicket = fullTicket;
             setBanner(`UI du ticket ${ticketId} chargee.`, 'success');
             renderTickets();
             renderDetail();
@@ -665,6 +670,64 @@
         state.busyTicketId = null;
         renderTickets();
       }
+    }
+
+    function showInstructionPanel(ticket, prompt, action) {
+      const icon = action === 'scratch' ? '➕' : '🎨';
+      const title = action === 'scratch' ? 'Creer une UI from scratch' : 'Generer l\'UI depuis la story';
+      const steps = action === 'scratch'
+        ? [
+            'Copiez le message ci-dessous dans le chat',
+            'Appuyez sur Entree pour lancer la generation',
+            'L\'UI generee s\'affichera dans le panneau de preview',
+          ]
+        : [
+            'Copiez le message ci-dessous dans le chat',
+            'Appuyez sur Entree pour lancer la generation',
+            'Le LLM lira la description du ticket et generera le HTML',
+            'L\'UI sera automatiquement enregistree sur le ticket',
+          ];
+
+      detailEl.className = 'detail-panel visible';
+      detailEl.innerHTML = `
+        <div class="detail-header">
+          <div>
+            <span class="ticket-id">${escapeHtml(ticket?.id || '')}</span>
+            <h3 class="detail-title">${icon} ${escapeHtml(title)}</h3>
+          </div>
+        </div>
+        ${ticket?.description ? `<p class="detail-description">${escapeHtml(ticket.description)}</p>` : ''}
+        <div style="background:var(--colorBrandBackground2,#dbeafe);border:1px solid var(--colorBrandStroke1,#93c5fd);border-radius:14px;padding:16px;display:grid;gap:12px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--colorBrandForeground1,#0f6cbd);">Etapes</div>
+          <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:var(--colorNeutralForeground1,#1f2937);">
+            ${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}
+          </ol>
+          <div style="margin-top:4px;">
+            <div style="font-size:11px;font-weight:600;color:var(--colorNeutralForeground3,#6b7280);margin-bottom:6px;">Message a copier :</div>
+            <div id="prompt-copy-box" style="display:flex;align-items:center;gap:8px;background:var(--colorNeutralBackground1,#fff);border:1px solid var(--colorNeutralStroke1,#d1d5db);border-radius:10px;padding:10px 12px;cursor:pointer;" title="Cliquer pour copier">
+              <span style="flex:1;font-size:13px;font-weight:600;color:var(--colorNeutralForeground1,#111827);">${escapeHtml(prompt)}</span>
+              <span style="font-size:16px;">📋</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Copy to clipboard on click
+      detailEl.querySelector('#prompt-copy-box').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(prompt);
+          const box = detailEl.querySelector('#prompt-copy-box');
+          const icon = box.querySelector('span:last-child');
+          icon.textContent = '✅';
+          setTimeout(() => { icon.textContent = '📋'; }, 2000);
+        } catch (e) {
+          // Fallback: select text
+          const range = document.createRange();
+          range.selectNodeContents(detailEl.querySelector('#prompt-copy-box span:first-child'));
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+        }
+      });
     }
 
     function handleToolResult(result) {

@@ -545,11 +545,26 @@
       if (!ticketId || !action) return;
 
       if (action === 'generate' || action === 'scratch') {
-        // These actions require the LLM to generate HTML code - widget cannot do that.
         const prompt = action === 'scratch'
           ? `Cree une interface libre pour le ticket ${ticketId}`
           : `Genere l'UI du ticket ${ticketId}`;
-        setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+        setBanner(`Envoi de la demande...`, 'info');
+        try {
+          await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
+        } catch (e) {
+          setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+        }
+        return;
+      }
+
+      if (action === 'view') {
+        const prompt = `Montre l'UI du ticket ${ticketId}`;
+        setBanner(`Ouverture de l'UI...`, 'info');
+        try {
+          await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
+        } catch (e) {
+          setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+        }
         return;
       }
 
@@ -557,15 +572,7 @@
       renderTickets();
 
       try {
-        if (action === 'view') {
-          setBanner(`Ouverture de l'UI du ticket ${ticketId}...`, 'info');
-          try {
-            await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
-            setBanner(`UI du ticket ${ticketId} ouverte dans le panneau lateral.`, 'success');
-          } catch (e) {
-            setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
-          }
-        }
+        // Other actions handled here
       } catch (error) {
         setBanner(error instanceof Error ? error.message : 'Operation impossible.', 'error');
       } finally {

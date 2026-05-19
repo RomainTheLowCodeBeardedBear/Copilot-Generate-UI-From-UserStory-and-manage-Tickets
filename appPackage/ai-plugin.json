@@ -4,7 +4,7 @@
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
   "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. IMPORTANT: pour toute creation ou modification d'UI liee a un ticket, utiliser TOUJOURS generateUIFromTicket (qui enregistre automatiquement le HTML sur le ticket). generateUI et updateUI sont reserves aux generations libres sans ticket. listTickets affiche les tickets disponibles. getTicket recupere le detail complet d'un ticket. saveUIToTicket sauvegarde ou efface une proposition UI. viewTicketUI affiche la proposition UI existante d'un ticket.",
+  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. WORKFLOW: 1) Pour creer une interface: d'abord createTicket, puis generateUIFromTicket, puis TOUJOURS listTickets a la fin pour rafraichir le widget. 2) Pour modifier une UI existante: utiliser generateUIFromTicket (JAMAIS updateUI ou generateUI). 3) Apres TOUT appel a createTicket, updateTicket, generateUIFromTicket ou resetTickets: TOUJOURS appeler listTickets en dernier pour actualiser le widget. listTickets liste les tickets. getTicket recupere le detail. saveUIToTicket sauvegarde ou efface une UI. viewTicketUI affiche l'UI dans le preview.",
   "functions": [
     {
       "name": "listTickets",
@@ -151,11 +151,7 @@
                 "additionalProperties": false,
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
-              "execution": { "taskSupport": "forbidden" },
-              "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
-                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
-              }
+              "execution": { "taskSupport": "forbidden" }
             },
             {
               "name": "updateTicket",

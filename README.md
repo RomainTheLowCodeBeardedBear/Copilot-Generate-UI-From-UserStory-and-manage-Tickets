@@ -6,6 +6,8 @@
 
 *Captures d'écran à venir : aperçu du backlog, panneau latéral de prévisualisation et génération d'interface en conversation.*
 
+> 🚀 **Première fois ?** Consulte le [Guide de démarrage](docs/getting-started.md) — de l'installation de VS Code jusqu'au premier F5.
+
 ---
 
 ## Sommaire
@@ -62,12 +64,16 @@ L'utilisateur décrit directement une interface sans passer par le backlog. L'ag
 
 ## Fonctionnalités clés
 
-- Génération d'interfaces **HTML/CSS/JS** à partir d'une description naturelle
+Ce projet est un **agent déclaratif Microsoft 365 Copilot** (Declarative Copilot Agent), connecté à un **MCP Server** via le protocole **Model Context Protocol**, avec des **widgets interactifs MCP Apps** (Embedded Apps) affichés directement dans le chat M365 Copilot.
+
+- **Agent déclaratif M365 Copilot** — manifest v1.26, agent v1.6, plugin v2.4 avec `RemoteMCPServer`
+- **MCP Server Node.js/TypeScript/Express** — 10 outils exposés via Streamable HTTP
+- **Widgets MCP Apps** — 2 widgets HTML interactifs intégrés au chat (backlog + preview)
+- Génération d'interfaces **HTML/CSS/JS** à partir d'une description en langage naturel
 - Mise à jour incrémentale d'une UI existante via le chat
 - Gestion d'un backlog de tickets UI avec **statut**, **priorité** et **assigné**
-- Prévisualisation immédiate dans des **widgets HTML intégrés au chat**
-- Sauvegarde d'une proposition d'interface sur un ticket existant
-- Création de tickets avec ou sans code HTML initial
+- Prévisualisation immédiate en **mode plein écran** avec rafraîchissement automatique en temps réel
+- Sauvegarde d'une proposition d'interface sur un ticket existant ou nouveau
 - Réinitialisation rapide des données de démonstration
 - Stockage simple sur fichiers JSON, **sans base de données**
 

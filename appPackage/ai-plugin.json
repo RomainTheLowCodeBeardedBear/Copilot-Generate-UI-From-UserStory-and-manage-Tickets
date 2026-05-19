@@ -16,7 +16,7 @@
     },
     {
       "name": "listTickets",
-      "description": "Liste les tickets du backlog UI dans un widget type JIRA avec statut, priorite, assignee et etat de la proposition UI."
+      "description": "Liste les tickets du backlog UI avec statut, priorite, assignee et etat de la proposition UI."
     },
     {
       "name": "getTicket",

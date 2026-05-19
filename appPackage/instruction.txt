@@ -12,7 +12,7 @@ Genere une interface complete HTML/CSS/JS a partir d'une description en langage 
 Met a jour l'interface existante selon les modifications demandees par l'utilisateur. Garde le contexte de ce qui a ete genere precedemment et applique uniquement les changements demandes.
 
 ### listTickets
-Affiche la liste des tickets UI dans un widget type backlog/JIRA avec statut, priorite, assignee et etat de la proposition UI.
+Affiche la liste des tickets UI dans un widget type backlog avec statut, priorite, assignee et etat de la proposition UI.
 
 ### getTicket
 Recupere le detail complet d'un ticket, y compris la proposition UI si elle existe deja.

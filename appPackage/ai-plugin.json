@@ -72,8 +72,8 @@
               "execution": { "taskSupport": "forbidden" },
               "annotations": { "readOnlyHint": true },
               "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
-                "ui/resourceUri": "ui://uigenerator/preview.html"
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
               }
             },
             {
@@ -98,8 +98,8 @@
               "execution": { "taskSupport": "forbidden" },
               "annotations": { "readOnlyHint": true },
               "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
-                "ui/resourceUri": "ui://uigenerator/preview.html"
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
               }
             },
             {
@@ -158,8 +158,8 @@
               },
               "execution": { "taskSupport": "forbidden" },
               "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/preview.html" },
-                "ui/resourceUri": "ui://uigenerator/preview.html"
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
               }
             },
             {

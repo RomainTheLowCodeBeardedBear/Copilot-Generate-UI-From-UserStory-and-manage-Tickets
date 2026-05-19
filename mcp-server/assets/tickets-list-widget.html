@@ -630,10 +630,11 @@
         const ticket = state.tickets.find(t => t.id === ticketId);
         if (ticket?.hasUiProposal && action === 'generate') {
           try {
-            const existing = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
-            if (existing?.structuredContent?.htmlCode) {
+            const existing = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
+            const existingTicket = existing?.structuredContent?.ticket || existing?.structuredContent;
+            if (existingTicket?.uiProposal) {
               await app.updateModelContext({
-                content: [{ type: 'text', text: `Le ticket ${ticketId} a deja une UI. Code HTML actuel :\n\n${existing.structuredContent.htmlCode}\n\nRegenere une nouvelle version amelioree.` }]
+                content: [{ type: 'text', text: `Le ticket ${ticketId} a deja une UI. Code HTML actuel :\n\n${existingTicket.uiProposal}\n\nRegenere une nouvelle version amelioree.` }]
               });
             }
           } catch (_) {}
@@ -652,7 +653,7 @@
       }
     }
 
-    function handleToolResult(result) {
+    async function handleToolResult(result) {
       const data = result?.structuredContent;
       if (!data) {
         return;
@@ -712,10 +713,29 @@
         };
 
         upsertTicketSummary(generatedTicket);
-        if (!inPreview) {
-          setBanner(`Proposition UI prete pour ${data.ticketId}.`, 'success');
-          renderTickets();
-        }
+        // Auto-open fullscreen preview for the generated UI
+        state.previewTicketId = data.ticketId;
+        state.previewHtml = data.htmlCode;
+        state.previewTitle = generatedTicket.title || data.ticketId;
+        savePreviewState(data.ticketId);
+        try {
+          await app.updateModelContext({
+            content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${data.ticketId} (${generatedTicket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${data.htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+          });
+        } catch (_) {}
+        try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+        renderPreview();
+        return;
+      }
+
+      // Handle standalone generateUI/updateUI (htmlCode without ticketId)
+      if (data.htmlCode && !data.ticketId) {
+        state.previewTicketId = '__standalone__';
+        state.previewHtml = data.htmlCode;
+        state.previewTitle = data.description || 'UI Generee';
+        savePreviewState('__standalone__');
+        try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
+        renderPreview();
         return;
       }
 

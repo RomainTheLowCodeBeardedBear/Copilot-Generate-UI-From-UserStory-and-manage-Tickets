@@ -70,11 +70,7 @@
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
               "execution": { "taskSupport": "forbidden" },
-              "annotations": { "readOnlyHint": true },
-              "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
-                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
-              }
+              "annotations": { "readOnlyHint": true }
             },
             {
               "name": "updateUI",
@@ -96,11 +92,7 @@
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
               "execution": { "taskSupport": "forbidden" },
-              "annotations": { "readOnlyHint": true },
-              "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
-                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
-              }
+              "annotations": { "readOnlyHint": true }
             },
             {
               "name": "listTickets",
@@ -156,11 +148,7 @@
                 "additionalProperties": false,
                 "$schema": "http://json-schema.org/draft-07/schema#"
               },
-              "execution": { "taskSupport": "forbidden" },
-              "_meta": {
-                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
-                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
-              }
+              "execution": { "taskSupport": "forbidden" }
             },
             {
               "name": "saveUIToTicket",

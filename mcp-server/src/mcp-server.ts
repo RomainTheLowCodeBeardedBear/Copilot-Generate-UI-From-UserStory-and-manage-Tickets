@@ -118,9 +118,7 @@ export function createMcpServer(): McpServer {
         description: z.string().describe('Description de l\'interface generee'),
         htmlCode: z.string().describe('Code HTML/CSS/JS complet auto-contenu'),
       },
-      _meta: {
-        ui: { resourceUri: PREVIEW_URI },
-      },
+      _meta: { ui: { resourceUri: PREVIEW_URI } },
     },
     async ({ description, htmlCode }) => {
       console.log(`[generateUI] ${description.substring(0, 100)}`);
@@ -145,9 +143,7 @@ export function createMcpServer(): McpServer {
         description: z.string().describe('Description des modifications apportees'),
         htmlCode: z.string().describe('Code HTML/CSS/JS complet mis a jour'),
       },
-      _meta: {
-        ui: { resourceUri: PREVIEW_URI },
-      },
+      _meta: { ui: { resourceUri: PREVIEW_URI } },
     },
     async ({ description, htmlCode }) => {
       console.log(`[updateUI] ${description.substring(0, 100)}`);
@@ -261,9 +257,7 @@ export function createMcpServer(): McpServer {
         ticketId: z.string().describe('Identifiant du ticket a utiliser comme source, par exemple US-001'),
         htmlCode: z.string().describe('Code HTML/CSS/JS complet genere a partir de la description du ticket'),
       },
-      _meta: {
-        ui: { resourceUri: PREVIEW_URI },
-      },
+      _meta: { ui: { resourceUri: PREVIEW_URI } },
     },
     async ({ ticketId, htmlCode }) => {
       const tickets = loadTickets();

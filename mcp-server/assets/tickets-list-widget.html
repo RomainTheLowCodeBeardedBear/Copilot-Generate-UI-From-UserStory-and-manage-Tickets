@@ -626,24 +626,51 @@
           ? `Cree une interface libre pour le ticket ${ticketId}`
           : `Genere l'UI du ticket ${ticketId}`;
         setBanner(`Envoi de la demande...`, 'info');
-        // If ticket already has UI (regenerate), inject current HTML as context
+
+        // Save old proposal length to detect changes (regenerate case)
+        let oldProposalLen = 0;
         const ticket = state.tickets.find(t => t.id === ticketId);
         if (ticket?.hasUiProposal && action === 'generate') {
           try {
             const existing = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
             const existingTicket = existing?.structuredContent?.ticket || existing?.structuredContent;
             if (existingTicket?.uiProposal) {
+              oldProposalLen = existingTicket.uiProposal.length;
               await app.updateModelContext({
                 content: [{ type: 'text', text: `Le ticket ${ticketId} a deja une UI. Code HTML actuel :\n\n${existingTicket.uiProposal}\n\nRegenere une nouvelle version amelioree.` }]
               });
             }
           } catch (_) {}
         }
+
         try {
           await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
         } catch (e) {
           setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+          return;
         }
+
+        // Poll for generation completion then auto-open preview
+        setBanner(`⏳ Generation en cours...`, 'info');
+        let attempts = 0;
+        const pollId = setInterval(async () => {
+          attempts++;
+          if (attempts > 24) {
+            clearInterval(pollId);
+            setBanner(`Generation terminee. Cliquez "Voir l'UI" pour voir le resultat.`, 'info');
+            return;
+          }
+          try {
+            const r = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
+            const t = r?.structuredContent?.ticket || r?.structuredContent;
+            if (t?.uiProposal && t.uiProposal.length !== oldProposalLen) {
+              clearInterval(pollId);
+              upsertTicketSummary(t);
+              renderTickets();
+              await openPreview(ticketId);
+            }
+          } catch (_) {}
+        }, 5000);
         return;
       }
 
@@ -713,29 +740,18 @@
         };
 
         upsertTicketSummary(generatedTicket);
-        // Auto-open fullscreen preview for the generated UI
-        state.previewTicketId = data.ticketId;
-        state.previewHtml = data.htmlCode;
-        state.previewTitle = generatedTicket.title || data.ticketId;
-        savePreviewState(data.ticketId);
-        try {
-          await app.updateModelContext({
-            content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${data.ticketId} (${generatedTicket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${data.htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
-          });
-        } catch (_) {}
-        try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
-        renderPreview();
+        if (!inPreview) {
+          setBanner(`Proposition UI prete pour ${data.ticketId}.`, 'success');
+          renderTickets();
+        }
         return;
       }
 
       // Handle standalone generateUI/updateUI (htmlCode without ticketId)
       if (data.htmlCode && !data.ticketId) {
-        state.previewTicketId = '__standalone__';
-        state.previewHtml = data.htmlCode;
-        state.previewTitle = data.description || 'UI Generee';
-        savePreviewState('__standalone__');
-        try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
-        renderPreview();
+        if (!inPreview) {
+          setBanner(`UI generee.`, 'success');
+        }
         return;
       }
 

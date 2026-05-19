@@ -353,8 +353,8 @@ export function createMcpServer(): McpServer {
       return {
         content: [{ type: 'text' as const, text: `Ticket ${newId} cree: ${title}` }],
         structuredContent: {
-          type: 'ticketCreated',
-          ticket: { ...newTicket, uiProposal: undefined, hasUiProposal: false },
+          tickets: summarizeTickets(tickets),
+          createdTicketId: newId,
           timestamp: new Date().toISOString(),
         },
       };

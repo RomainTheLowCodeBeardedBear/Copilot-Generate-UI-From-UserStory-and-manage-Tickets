@@ -712,7 +712,10 @@
         state.isLoaded = true;
         state.tickets = data.tickets;
         if (!inPreview) {
-          setBanner(`${data.tickets.length} tickets charges.`, 'success');
+          const msg = data.createdTicketId
+            ? `Ticket ${data.createdTicketId} cree avec succes !`
+            : `${data.tickets.length} tickets charges.`;
+          setBanner(msg, 'success');
           renderTickets();
         }
         return;

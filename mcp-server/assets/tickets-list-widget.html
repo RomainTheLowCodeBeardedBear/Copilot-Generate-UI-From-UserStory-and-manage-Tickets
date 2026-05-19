@@ -300,6 +300,7 @@
       previewTicketId: null,
       previewHtml: null,
       previewTitle: null,
+      closedPreviewAt: 0,
     };
 
     const summaryEl = document.getElementById('summary');
@@ -561,6 +562,7 @@
       try {
         localStorage.removeItem('uigen_preview_id');
         localStorage.removeItem('uigen_preview_ts');
+        localStorage.setItem('uigen_closed_ts', String(Date.now()));
       } catch (_) {}
     }
 
@@ -583,6 +585,7 @@
         state.previewTicketId = null;
         state.previewHtml = null;
         state.previewTitle = null;
+        state.closedPreviewAt = Date.now();
         clearPreviewState();
         previewView.style.display = 'none';
         mainView.style.display = '';
@@ -655,6 +658,20 @@
     function handleToolResult(result) {
       const data = result?.structuredContent;
       if (!data) {
+        return;
+      }
+
+      // If we just closed preview, ignore tool results briefly to prevent forced reopen
+      if (state.closedPreviewAt && (Date.now() - state.closedPreviewAt) < 3000) {
+        // Still update data silently but don't render
+        if (Array.isArray(data.tickets)) {
+          state.isLoaded = true;
+          state.tickets = data.tickets;
+        }
+        if (data.ticketId && data.htmlCode) {
+          const fallback = state.tickets.find((ticket) => ticket.id === data.ticketId);
+          upsertTicketSummary(data.ticket ?? { id: data.ticketId, title: data.title ?? fallback?.title ?? data.ticketId, description: data.description ?? fallback?.description ?? '', priority: fallback?.priority ?? 'Medium', status: fallback?.status ?? 'In Progress', assignee: fallback?.assignee ?? 'Non assigne', uiProposal: data.htmlCode });
+        }
         return;
       }
 
@@ -769,6 +786,13 @@
 
     // Check if we should restore preview mode (widget re-created in fullscreen)
     const pendingPreviewId = loadPreviewState();
+    // Check if we just closed preview (prevent host from forcing reopen)
+    try {
+      const closedTs = localStorage.getItem('uigen_closed_ts');
+      if (closedTs && (Date.now() - parseInt(closedTs, 10)) < 3000) {
+        state.closedPreviewAt = parseInt(closedTs, 10);
+      }
+    } catch (_) {}
     if (pendingPreviewId) {
       clearPreviewState();
       await openPreview(pendingPreviewId);

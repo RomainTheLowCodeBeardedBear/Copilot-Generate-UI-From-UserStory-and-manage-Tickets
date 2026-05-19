@@ -718,6 +718,15 @@
         return;
       }
 
+      if (data.type === 'ticketCreated' && data.ticket) {
+        upsertTicketSummary(data.ticket);
+        if (!inPreview) {
+          setBanner(`Ticket ${data.ticket.id} cree: ${data.ticket.title}`, 'success');
+          renderTickets();
+        }
+        return;
+      }
+
       if (data.type === 'ticketUpdated' && data.ticket) {
         const updatedSummary = {
           id: data.ticket.id,

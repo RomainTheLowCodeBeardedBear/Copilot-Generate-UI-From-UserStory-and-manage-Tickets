@@ -23,6 +23,10 @@
       "description": "Enregistre la version finale d'une interface HTML/CSS/JS sur un ticket existant."
     },
     {
+      "name": "createTicket",
+      "description": "Cree un nouveau ticket dans le backlog UI avec titre, description fonctionnelle et criteres UX."
+    },
+    {
       "name": "updateTicket",
       "description": "Met a jour les champs d'un ticket (titre, description, statut, priorite, assignee)."
     },
@@ -120,6 +124,40 @@
               "execution": { "taskSupport": "forbidden" }
             },
             {
+              "name": "createTicket",
+              "description": "Cree un nouveau ticket dans le backlog UI.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Titre du ticket (ex: 'Formulaire de remboursement de notes de frais')"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Description fonctionnelle detaillee du ticket avec criteres UX"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["High", "Medium", "Low"],
+                    "description": "Priorite du ticket (defaut: Medium)"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "Responsable du ticket (defaut: Non assigne)"
+                  }
+                },
+                "required": ["title", "description"],
+                "additionalProperties": false,
+                "$schema": "http://json-schema.org/draft-07/schema#"
+              },
+              "execution": { "taskSupport": "forbidden" },
+              "_meta": {
+                "ui": { "resourceUri": "ui://uigenerator/tickets-list.html" },
+                "ui/resourceUri": "ui://uigenerator/tickets-list.html"
+              }
+            },
+            {
               "name": "updateTicket",
               "description": "Met a jour les champs d'un ticket : titre, description, statut, priorite, assignee.",
               "inputSchema": {
@@ -206,6 +244,7 @@
       "run_for_functions": [
         "listTickets",
         "getTicket",
+        "createTicket",
         "generateUIFromTicket",
         "saveUIToTicket",
         "updateTicket",

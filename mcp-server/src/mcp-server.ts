@@ -316,6 +316,53 @@ export function createMcpServer(): McpServer {
 
   registerAppTool(
     server,
+    'createTicket',
+    {
+      description: 'Cree un nouveau ticket dans le backlog UI',
+      inputSchema: {
+        title: z.string().describe('Titre du ticket (ex: "Formulaire de remboursement de notes de frais")'),
+        description: z.string().describe('Description fonctionnelle detaillee du ticket avec criteres UX'),
+        priority: z.enum(['High', 'Medium', 'Low']).optional().describe('Priorite du ticket (defaut: Medium)'),
+        assignee: z.string().optional().describe('Responsable du ticket (defaut: Non assigne)'),
+      },
+      _meta: {
+        ui: { resourceUri: TICKETS_LIST_URI },
+      },
+    },
+    async ({ title, description, priority, assignee }) => {
+      const tickets = loadTickets();
+      // Generate next US-XXX id
+      const maxNum = tickets.reduce((max, t) => {
+        const m = t.id.match(/^US-(\d+)$/);
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, 0);
+      const newId = `US-${String(maxNum + 1).padStart(3, '0')}`;
+      const newTicket: Ticket = {
+        id: newId,
+        title,
+        description,
+        priority: priority ?? 'Medium',
+        status: 'To Do',
+        assignee: assignee ?? 'Non assigne',
+        uiProposal: null,
+      };
+      tickets.push(newTicket);
+      saveTickets(tickets);
+      console.log(`[createTicket] ${newId} - ${title}`);
+
+      return {
+        content: [{ type: 'text' as const, text: `Ticket ${newId} cree: ${title}` }],
+        structuredContent: {
+          type: 'ticketCreated',
+          ticket: { ...newTicket, uiProposal: undefined, hasUiProposal: false },
+          timestamp: new Date().toISOString(),
+        },
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
     'updateTicket',
     {
       description: 'Met a jour les champs d\'un ticket (titre, description, statut, priorite, assignee)',

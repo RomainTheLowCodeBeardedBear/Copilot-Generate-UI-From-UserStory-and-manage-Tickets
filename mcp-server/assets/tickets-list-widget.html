@@ -584,23 +584,25 @@
         state.previewHtml = null;
         state.previewTitle = null;
         clearPreviewState();
-        try { await app.requestTeardown(); } catch (_) {}
+        try { await app.requestDisplayMode({ mode: 'inline' }); } catch (_) {}
       });
     }
 
     async function openPreview(ticketId) {
       try {
-        const result = await app.callServerTool({ name: 'viewTicketUI', arguments: { ticketId } });
+        // Use getTicket (no resourceUri) to avoid host trying to open preview.html
+        const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
         const data = result?.structuredContent;
-        if (data?.htmlCode) {
+        const ticket = data?.ticket || data;
+        const htmlCode = ticket?.uiProposal;
+        if (htmlCode) {
           state.previewTicketId = ticketId;
-          state.previewHtml = data.htmlCode;
-          state.previewTitle = data.title || ticketId;
+          state.previewHtml = htmlCode;
+          state.previewTitle = ticket.title || ticketId;
           savePreviewState(ticketId);
-          // Inject the HTML into the LLM context so it can modify it
           try {
             await app.updateModelContext({
-              content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${data.title || ''}). Voici le code HTML actuel de cette UI :\n\n${data.htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+              content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${ticket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
             });
           } catch (_) {}
           try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}

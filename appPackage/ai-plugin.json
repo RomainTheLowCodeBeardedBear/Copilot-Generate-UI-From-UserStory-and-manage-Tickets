@@ -4,7 +4,7 @@
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
   "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. generateUI cree une interface HTML complete a partir d'une description libre. updateUI modifie l'interface existante. listTickets affiche les tickets disponibles dans un widget de type backlog. getTicket recupere le detail complet d'un ticket. generateUIFromTicket genere et enregistre une proposition UI a partir de la description du ticket. saveUIToTicket sauvegarde une version finale sur le ticket. viewTicketUI affiche la proposition UI existante d'un ticket dans le panneau lateral.",
+  "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. IMPORTANT: pour toute creation ou modification d'UI liee a un ticket, utiliser TOUJOURS generateUIFromTicket (qui enregistre automatiquement le HTML sur le ticket). generateUI et updateUI sont reserves aux generations libres sans ticket. listTickets affiche les tickets disponibles. getTicket recupere le detail complet d'un ticket. saveUIToTicket sauvegarde ou efface une proposition UI. viewTicketUI affiche la proposition UI existante d'un ticket.",
   "functions": [
     {
       "name": "generateUI",

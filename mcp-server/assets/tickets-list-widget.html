@@ -300,6 +300,7 @@
       previewTicketId: null,
       previewHtml: null,
       previewTitle: null,
+      previewPollId: null,
     };
 
     const summaryEl = document.getElementById('summary');
@@ -576,7 +577,33 @@
       `;
       const frame = document.getElementById('preview-frame');
       if (frame) { frame.srcdoc = state.previewHtml; }
+
+      // Poll for UI changes while in preview mode
+      if (state.previewPollId) { clearInterval(state.previewPollId); }
+      const ticketId = state.previewTicketId;
+      if (ticketId && ticketId !== '__standalone__') {
+        state.previewPollId = setInterval(async () => {
+          if (!state.previewTicketId) { clearInterval(state.previewPollId); state.previewPollId = null; return; }
+          try {
+            const r = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
+            const t = r?.structuredContent?.ticket || r?.structuredContent;
+            if (t?.uiProposal && t.uiProposal !== state.previewHtml) {
+              state.previewHtml = t.uiProposal;
+              const f = document.getElementById('preview-frame');
+              if (f) { f.srcdoc = t.uiProposal; }
+              // Re-inject updated context so LLM always has the latest version
+              try {
+                await app.updateModelContext({
+                  content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${state.previewTitle || ''}). Voici le code HTML actuel de cette UI :\n\n${t.uiProposal}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+                });
+              } catch (_) {}
+            }
+          } catch (_) {}
+        }, 5000);
+      }
+
       document.getElementById('btn-back-preview').addEventListener('click', async () => {
+        if (state.previewPollId) { clearInterval(state.previewPollId); state.previewPollId = null; }
         state.previewTicketId = null;
         state.previewHtml = null;
         state.previewTitle = null;

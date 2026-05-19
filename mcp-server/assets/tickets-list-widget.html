@@ -440,18 +440,15 @@
                 📝 Editer ticket
               </fluent-button>
               ${ticket.hasUiProposal ? `
-                <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="view" data-ticket-id="${escapeHtml(ticket.id)}">
-                  📋 Voir l'UI
+                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="view" data-ticket-id="${escapeHtml(ticket.id)}">
+                  👁 Voir & Editer l'UI
                 </fluent-button>
-                <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="generate" data-ticket-id="${escapeHtml(ticket.id)}">
-                  🔄 Regenerer l'UI
+                <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="delete" data-ticket-id="${escapeHtml(ticket.id)}">
+                  🗑 Effacer l'UI
                 </fluent-button>
               ` : `
                 <fluent-button appearance="accent" ${busy ? 'disabled' : ''} data-action="generate" data-ticket-id="${escapeHtml(ticket.id)}">
-                  🎨 Generer UI depuis la story
-                </fluent-button>
-                <fluent-button appearance="outline" ${busy ? 'disabled' : ''} data-action="scratch" data-ticket-id="${escapeHtml(ticket.id)}">
-                  ➕ Creer UI from scratch
+                  🎨 Generer l'UI
                 </fluent-button>
               `}
             </div>
@@ -621,27 +618,9 @@
       const action = button.dataset.action;
       if (!ticketId || !action) return;
 
-      if (action === 'generate' || action === 'scratch') {
-        const prompt = action === 'scratch'
-          ? `Cree une interface libre pour le ticket ${ticketId}`
-          : `Genere l'UI du ticket ${ticketId}`;
+      if (action === 'generate') {
+        const prompt = `Genere l'UI du ticket ${ticketId}`;
         setBanner(`Envoi de la demande...`, 'info');
-
-        // Save old proposal length to detect changes (regenerate case)
-        let oldProposalLen = 0;
-        const ticket = state.tickets.find(t => t.id === ticketId);
-        if (ticket?.hasUiProposal && action === 'generate') {
-          try {
-            const existing = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
-            const existingTicket = existing?.structuredContent?.ticket || existing?.structuredContent;
-            if (existingTicket?.uiProposal) {
-              oldProposalLen = existingTicket.uiProposal.length;
-              await app.updateModelContext({
-                content: [{ type: 'text', text: `Le ticket ${ticketId} a deja une UI. Code HTML actuel :\n\n${existingTicket.uiProposal}\n\nRegenere une nouvelle version amelioree.` }]
-              });
-            }
-          } catch (_) {}
-        }
 
         try {
           await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
@@ -657,13 +636,13 @@
           attempts++;
           if (attempts > 24) {
             clearInterval(pollId);
-            setBanner(`Generation terminee. Cliquez "Voir l'UI" pour voir le resultat.`, 'info');
+            setBanner(`Generation terminee. Cliquez "Voir & Editer l'UI" pour voir le resultat.`, 'info');
             return;
           }
           try {
             const r = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
             const t = r?.structuredContent?.ticket || r?.structuredContent;
-            if (t?.uiProposal && t.uiProposal.length !== oldProposalLen) {
+            if (t?.uiProposal) {
               clearInterval(pollId);
               upsertTicketSummary(t);
               renderTickets();
@@ -671,6 +650,19 @@
             }
           } catch (_) {}
         }, 5000);
+        return;
+      }
+
+      if (action === 'delete') {
+        try {
+          await app.callServerTool({ name: 'saveUIToTicket', arguments: { ticketId, htmlCode: '' } });
+          const ticket = state.tickets.find(t => t.id === ticketId);
+          if (ticket) { ticket.hasUiProposal = false; }
+          setBanner(`UI effacee pour ${ticketId}.`, 'success');
+          renderTickets();
+        } catch (e) {
+          setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
+        }
         return;
       }
 

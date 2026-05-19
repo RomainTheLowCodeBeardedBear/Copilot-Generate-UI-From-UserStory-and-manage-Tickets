@@ -296,7 +296,7 @@ export function createMcpServer(): McpServer {
     async ({ ticketId, htmlCode }) => {
       const tickets = loadTickets();
       const { ticket, index } = findTicket(tickets, ticketId);
-      const updatedTicket: Ticket = { ...ticket, uiProposal: htmlCode };
+      const updatedTicket: Ticket = { ...ticket, uiProposal: htmlCode || null };
       tickets[index] = updatedTicket;
       saveTickets(tickets);
       console.log(`[saveUIToTicket] ${ticketId}`);

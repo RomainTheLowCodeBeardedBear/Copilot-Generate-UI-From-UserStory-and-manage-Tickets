@@ -4,8 +4,16 @@
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
   "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. WORKFLOW: 1) Pour creer une interface: d'abord createTicket, puis generateUIFromTicket, puis TOUJOURS listTickets a la fin pour rafraichir le widget. 2) Pour modifier une UI existante: utiliser generateUIFromTicket (JAMAIS updateUI ou generateUI). 3) Apres TOUT appel a createTicket, updateTicket, generateUIFromTicket ou resetTickets: TOUJOURS appeler listTickets en dernier pour actualiser le widget. listTickets liste les tickets. getTicket recupere le detail. saveUIToTicket sauvegarde ou efface une UI. viewTicketUI affiche l'UI dans le preview.",
+  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. TROIS CAS D'USAGE: CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket pour generer ou modifier l'UI d'un ticket existant. CAS 2 - Creer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket. CAS 3 - UI libre SANS ticket: quand l'utilisateur veut juste une interface sans parler de ticket, utiliser generateUI pour creer et updateUI pour modifier. L'UI s'affiche dans le panneau lateral. L'utilisateur peut ensuite demander a sauvegarder dans un ticket avec createTicket + saveUIToTicket. REGLE: si l'utilisateur mentionne un ticket ou un ID ticket, utiliser le CAS 1 ou 2. Si l'utilisateur demande juste 'cree une interface pour X' sans mentionner de ticket, utiliser le CAS 3 (generateUI/updateUI). listTickets liste les tickets. getTicket recupere le detail.",
   "functions": [
+    {
+      "name": "generateUI",
+      "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre. Pour les UIs sans ticket associe. Le resultat s'affiche dans le panneau lateral."
+    },
+    {
+      "name": "updateUI",
+      "description": "Modifie l'interface existante affichee dans le panneau lateral. Envoyer le code HTML complet mis a jour."
+    },
     {
       "name": "listTickets",
       "description": "Liste les tickets du backlog UI dans un widget type JIRA avec statut, priorite, assignee et etat de la proposition UI."
@@ -46,6 +54,56 @@
         "url": "${{OPENAPI_SERVER_URL}}/mcp",
         "x-mcp_tool_description": {
           "tools": [
+           {
+             "name": "generateUI",
+             "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre (sans ticket). Le resultat s'affiche dans le panneau lateral.",
+             "inputSchema": {
+               "type": "object",
+               "properties": {
+                 "description": {
+                   "type": "string",
+                   "description": "Description en langage naturel de l'interface a generer"
+                 },
+                 "htmlCode": {
+                   "type": "string",
+                   "description": "Code HTML/CSS/JS complet de l'interface generee. Document HTML valide auto-contenu."
+                 }
+               },
+               "required": ["description", "htmlCode"],
+               "additionalProperties": false,
+               "$schema": "http://json-schema.org/draft-07/schema#"
+             },
+             "execution": { "taskSupport": "forbidden" },
+             "_meta": {
+               "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+               "ui/resourceUri": "ui://uigenerator/preview.html"
+             }
+           },
+           {
+             "name": "updateUI",
+             "description": "Modifie l'interface existante dans le panneau lateral. Envoyer le code HTML complet mis a jour.",
+             "inputSchema": {
+               "type": "object",
+               "properties": {
+                 "description": {
+                   "type": "string",
+                   "description": "Description des modifications apportees"
+                 },
+                 "htmlCode": {
+                   "type": "string",
+                   "description": "Code HTML/CSS/JS complet mis a jour. Document HTML valide auto-contenu."
+                 }
+               },
+               "required": ["description", "htmlCode"],
+               "additionalProperties": false,
+               "$schema": "http://json-schema.org/draft-07/schema#"
+             },
+             "execution": { "taskSupport": "forbidden" },
+             "_meta": {
+               "ui": { "resourceUri": "ui://uigenerator/preview.html" },
+               "ui/resourceUri": "ui://uigenerator/preview.html"
+             }
+           },
            {
              "name": "listTickets",
               "description": "Liste tous les tickets UI disponibles sans inclure le contenu HTML des propositions UI.",
@@ -242,6 +300,8 @@
         }
       },
       "run_for_functions": [
+        "generateUI",
+        "updateUI",
         "listTickets",
         "getTicket",
         "createTicket",

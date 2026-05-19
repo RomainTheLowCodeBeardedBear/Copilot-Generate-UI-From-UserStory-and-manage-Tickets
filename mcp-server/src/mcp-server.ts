@@ -318,20 +318,20 @@ export function createMcpServer(): McpServer {
     server,
     'createTicket',
     {
-      description: 'Cree un nouveau ticket dans le backlog UI',
+      description: 'Cree un nouveau ticket dans le backlog UI. Si htmlCode est fourni, enregistre aussi la proposition UI directement.',
       inputSchema: {
         title: z.string().describe('Titre du ticket (ex: "Formulaire de remboursement de notes de frais")'),
         description: z.string().describe('Description fonctionnelle detaillee du ticket avec criteres UX'),
         priority: z.enum(['High', 'Medium', 'Low']).optional().describe('Priorite du ticket (defaut: Medium)'),
         assignee: z.string().optional().describe('Responsable du ticket (defaut: Non assigne)'),
+        htmlCode: z.string().optional().describe('Code HTML/CSS/JS de la proposition UI a enregistrer directement sur le ticket'),
       },
       _meta: {
         ui: { resourceUri: TICKETS_LIST_URI },
       },
     },
-    async ({ title, description, priority, assignee }) => {
+    async ({ title, description, priority, assignee, htmlCode }) => {
       const tickets = loadTickets();
-      // Generate next US-XXX id
       const maxNum = tickets.reduce((max, t) => {
         const m = t.id.match(/^US-(\d+)$/);
         return m ? Math.max(max, parseInt(m[1], 10)) : max;
@@ -344,14 +344,14 @@ export function createMcpServer(): McpServer {
         priority: priority ?? 'Medium',
         status: 'To Do',
         assignee: assignee ?? 'Non assigne',
-        uiProposal: null,
+        uiProposal: htmlCode || null,
       };
       tickets.push(newTicket);
       saveTickets(tickets);
-      console.log(`[createTicket] ${newId} - ${title}`);
+      console.log(`[createTicket] ${newId} - ${title}${htmlCode ? ' (avec UI)' : ''}`);
 
       return {
-        content: [{ type: 'text' as const, text: `Ticket ${newId} cree: ${title}` }],
+        content: [{ type: 'text' as const, text: `Ticket ${newId} cree: ${title}${htmlCode ? ' (avec proposition UI)' : ''}` }],
         structuredContent: {
           tickets: summarizeTickets(tickets),
           createdTicketId: newId,

@@ -4,7 +4,7 @@
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
   "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. TROIS CAS D'USAGE: CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket pour generer ou modifier l'UI d'un ticket existant. CAS 2 - Creer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket. CAS 3 - UI libre SANS ticket: quand l'utilisateur veut juste une interface sans parler de ticket, utiliser generateUI pour creer et updateUI pour modifier. L'UI s'affiche dans le panneau lateral. L'utilisateur peut ensuite demander a sauvegarder dans un ticket avec createTicket + saveUIToTicket. REGLE: si l'utilisateur mentionne un ticket ou un ID ticket, utiliser le CAS 1 ou 2. Si l'utilisateur demande juste 'cree une interface pour X' sans mentionner de ticket, utiliser le CAS 3 (generateUI/updateUI). listTickets liste les tickets. getTicket recupere le detail.",
+  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. TROIS CAS D'USAGE: CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket pour generer ou modifier l'UI d'un ticket existant. CAS 2 - Creer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket. CAS 3 - UI libre SANS ticket: quand l'utilisateur veut juste une interface sans parler de ticket, utiliser generateUI pour creer et updateUI pour modifier. L'UI s'affiche dans le panneau lateral. Quand l'utilisateur veut ensuite sauvegarder dans un ticket, appeler createTicket avec le parametre htmlCode contenant le DERNIER code HTML genere/modifie dans la conversation. REGLE: si l'utilisateur mentionne un ticket ou un ID ticket, utiliser le CAS 1 ou 2. Si l'utilisateur demande juste 'cree une interface pour X' sans mentionner de ticket, utiliser le CAS 3 (generateUI/updateUI). IMPORTANT: quand l'utilisateur demande de creer un ticket apres avoir travaille sur une UI libre, TOUJOURS inclure le htmlCode dans createTicket pour ne pas perdre le travail.",
   "functions": [
     {
       "name": "generateUI",
@@ -32,7 +32,7 @@
     },
     {
       "name": "createTicket",
-      "description": "Cree un nouveau ticket dans le backlog UI avec titre, description fonctionnelle et criteres UX."
+      "description": "Cree un nouveau ticket. Si htmlCode est fourni, enregistre aussi la proposition UI. Utiliser quand l'utilisateur veut sauvegarder une UI libre dans un ticket."
     },
     {
       "name": "updateTicket",
@@ -183,17 +183,17 @@
             },
             {
               "name": "createTicket",
-              "description": "Cree un nouveau ticket dans le backlog UI.",
+              "description": "Cree un nouveau ticket. Si htmlCode est fourni, enregistre aussi la proposition UI directement.",
               "inputSchema": {
                 "type": "object",
                 "properties": {
                   "title": {
                     "type": "string",
-                    "description": "Titre du ticket (ex: 'Formulaire de remboursement de notes de frais')"
+                    "description": "Titre du ticket"
                   },
                   "description": {
                     "type": "string",
-                    "description": "Description fonctionnelle detaillee du ticket avec criteres UX"
+                    "description": "Description fonctionnelle detaillee du ticket"
                   },
                   "priority": {
                     "type": "string",
@@ -203,6 +203,10 @@
                   "assignee": {
                     "type": "string",
                     "description": "Responsable du ticket (defaut: Non assigne)"
+                  },
+                  "htmlCode": {
+                    "type": "string",
+                    "description": "Code HTML/CSS/JS de la proposition UI a enregistrer avec le ticket. Inclure le dernier HTML genere/modifie dans la conversation."
                   }
                 },
                 "required": ["title", "description"],

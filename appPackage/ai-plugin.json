@@ -7,14 +7,6 @@
   "description_for_model": "Plugin de generation d'interfaces web et de gestion de tickets UI. IMPORTANT: pour toute creation ou modification d'UI liee a un ticket, utiliser TOUJOURS generateUIFromTicket (qui enregistre automatiquement le HTML sur le ticket). generateUI et updateUI sont reserves aux generations libres sans ticket. listTickets affiche les tickets disponibles. getTicket recupere le detail complet d'un ticket. saveUIToTicket sauvegarde ou efface une proposition UI. viewTicketUI affiche la proposition UI existante d'un ticket.",
   "functions": [
     {
-      "name": "generateUI",
-      "description": "Genere une interface HTML/CSS/JS complete a partir d'une description en langage naturel. Le resultat s'affiche dans le widget lateral."
-    },
-    {
-      "name": "updateUI",
-      "description": "Met a jour l'interface existante avec les modifications demandees. Envoyer le code HTML complet mis a jour (pas juste le diff)."
-    },
-    {
       "name": "listTickets",
       "description": "Liste les tickets du backlog UI dans un widget type JIRA avec statut, priorite, assignee et etat de la proposition UI."
     },
@@ -24,7 +16,7 @@
     },
     {
       "name": "generateUIFromTicket",
-      "description": "Genere une interface HTML/CSS/JS a partir de la description d'un ticket et l'enregistre dans le ticket."
+      "description": "Genere ou modifie une interface HTML/CSS/JS a partir de la description d'un ticket et l'enregistre dans le ticket. Utiliser TOUJOURS ce tool pour toute creation ou modification d'UI liee a un ticket."
     },
     {
       "name": "saveUIToTicket",
@@ -50,52 +42,8 @@
         "url": "${{OPENAPI_SERVER_URL}}/mcp",
         "x-mcp_tool_description": {
           "tools": [
-            {
-              "name": "generateUI",
-              "description": "Genere une interface HTML/CSS/JS complete a partir d'une description. Le code HTML est rendu dans le widget lateral.",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "description": {
-                    "type": "string",
-                    "description": "Description en langage naturel de l'interface a generer (ex: 'un formulaire de contact avec nom, email et message')"
-                  },
-                  "htmlCode": {
-                    "type": "string",
-                    "description": "Code HTML/CSS/JS complet de l'interface generee. Doit etre un document HTML valide auto-contenu avec styles inline et scripts integres."
-                  }
-                },
-                "required": ["description", "htmlCode"],
-                "additionalProperties": false,
-                "$schema": "http://json-schema.org/draft-07/schema#"
-              },
-              "execution": { "taskSupport": "forbidden" },
-              "annotations": { "readOnlyHint": true }
-            },
-            {
-              "name": "updateUI",
-              "description": "Met a jour l'interface existante. Envoyer le code HTML complet avec les modifications appliquees.",
-              "inputSchema": {
-                "type": "object",
-                "properties": {
-                  "description": {
-                    "type": "string",
-                    "description": "Description des modifications apportees (ex: 'changement de la couleur de fond en bleu')"
-                  },
-                  "htmlCode": {
-                    "type": "string",
-                    "description": "Code HTML/CSS/JS complet mis a jour de l'interface. Doit etre un document HTML valide auto-contenu."
-                  }
-                },
-                "required": ["description", "htmlCode"],
-                "additionalProperties": false,
-                "$schema": "http://json-schema.org/draft-07/schema#"
-              },
-              "execution": { "taskSupport": "forbidden" },
-              "annotations": { "readOnlyHint": true }
-            },
-            {
-              "name": "listTickets",
+           {
+             "name": "listTickets",
               "description": "Liste tous les tickets UI disponibles sans inclure le contenu HTML des propositions UI.",
               "inputSchema": {
                 "type": "object",
@@ -256,8 +204,6 @@
         }
       },
       "run_for_functions": [
-        "generateUI",
-        "updateUI",
         "listTickets",
         "getTicket",
         "generateUIFromTicket",

@@ -310,6 +310,7 @@ Ce choix permet :
 
 | Skill | Description |
 |-------|-------------|
+| [ui-generation-workflow.md](docs/skills/ui-generation-workflow.md) | **Comment générer, éditer et sauvegarder une interface depuis le chat Copilot** |
 | [declarative-agent-mcp-setup.md](docs/skills/declarative-agent-mcp-setup.md) | Comment créer un agent déclaratif M365 connecté à un MCP Server |
 | [mcp-app-widgets.md](docs/skills/mcp-app-widgets.md) | Comment construire des widgets interactifs dans le chat M365 |
 | [mcp-app-csp-resources.md](docs/skills/mcp-app-csp-resources.md) | Comment débloquer les ressources CDN dans les iframes M365 |

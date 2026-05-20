@@ -1,152 +1,152 @@
-# Comment générer, éditer et sauvegarder une interface depuis le chat Copilot
+# How to generate, edit, and save an interface from the Copilot chat
 
-## Le problème
+## The problem
 
-Ce projet permet de créer des interfaces HTML/CSS/JS complètes directement dans le chat M365 Copilot. Mais il y a **trois façons différentes** de le faire, selon le contexte. Si on ne comprend pas quel flux utiliser, on se retrouve avec le mauvais outil appelé, des widgets qui ne s'affichent pas, ou du travail perdu au moment de sauvegarder.
+This project lets you create complete HTML/CSS/JS interfaces directly in the M365 Copilot chat. But there are **three different ways** to do it, depending on the context. If you do not understand which flow to use, you end up with the wrong tool being called, widgets that do not display, or work that gets lost when saving.
 
-Ce skill couvre le **cycle complet** : de la description en langage naturel jusqu'à l'interface rendue dans le panneau latéral, en passant par le code serveur, le routage LLM et le widget de preview.
-
----
-
-## Architecture du flux de données
-
-```
-Utilisateur tape dans le chat
-        │
-        ▼
-M365 Copilot (LLM) lit description_for_model → choisit le bon outil
-        │
-        ▼
-Appel MCP tool sur le serveur (generateUI / updateUI / generateUIFromTicket / createTicket)
-        │
-        ▼
-Le serveur retourne { content, structuredContent }
-        │
-        ▼
-M365 Copilot affiche content (texte) dans le chat
-        │
-        ▼
-Le widget reçoit structuredContent via App.ontoolresult()
-        │
-        ▼
-Le widget rend le HTML dans une iframe sandboxée
-```
-
-**Point clé** : le LLM ne génère pas que la description — il génère aussi **le code HTML/CSS/JS complet** dans le paramètre `htmlCode`. Le serveur MCP ne fait que transiter ou stocker ce code. Toute l'intelligence de génération est dans le LLM.
+This skill covers the **full cycle**: from a natural-language description to the interface rendered in the side panel, including the server code, LLM routing, and the preview widget.
 
 ---
 
-## Les trois cas d'usage
-
-### Cas 1 — Générer une UI à partir d'un ticket existant
-
-**Quand :** l'utilisateur a déjà un ticket dans le backlog et veut voir à quoi l'interface pourrait ressembler.
-
-**Flux :**
+## Data flow architecture
 
 ```
-"Génère l'UI du ticket US-002"
+User types in the chat
+        │
+        ▼
+M365 Copilot (LLM) reads description_for_model → chooses the right tool
+        │
+        ▼
+MCP tool call on the server (generateUI / updateUI / generateUIFromTicket / createTicket)
+        │
+        ▼
+The server returns { content, structuredContent }
+        │
+        ▼
+M365 Copilot displays content (text) in the chat
+        │
+        ▼
+The widget receives structuredContent via App.ontoolresult()
+        │
+        ▼
+The widget renders the HTML in a sandboxed iframe
+```
+
+**Key point**: the LLM does not only generate the description—it also generates **the complete HTML/CSS/JS code** in the `htmlCode` parameter. The MCP server only forwards or stores that code. All generation intelligence is in the LLM.
+
+---
+
+## The three use cases
+
+### Case 1 — Generate a UI from an existing ticket
+
+**When:** the user already has a ticket in the backlog and wants to see what the interface could look like.
+
+**Flow:**
+
+```
+"Generate the UI for ticket US-002"
         │
         ▼
   generateUIFromTicket(ticketId, htmlCode)
         │
         ▼
-  Le HTML est enregistré sur le ticket (champ uiProposal)
+  The HTML is saved on the ticket (uiProposal field)
         │
         ▼
-  Le widget preview s'ouvre avec l'interface générée
+  The preview widget opens with the generated interface
 ```
 
-**Ce qui se passe :**
-- Le LLM lit la description du ticket, génère le HTML/CSS/JS, et appelle `generateUIFromTicket`.
-- Le code est **directement sauvegardé** sur le ticket (écriture dans `tickets.json`).
-- Le widget de preview s'ouvre dans le panneau latéral de Copilot.
-- L'utilisateur peut demander des modifications dans le chat : « Ajoute un champ email », « Change le thème en sombre ». Le LLM rappelle `generateUIFromTicket` à chaque itération.
+**What happens:**
+- The LLM reads the ticket description, generates the HTML/CSS/JS, and calls `generateUIFromTicket`.
+- The code is **saved directly** on the ticket (written into `tickets.json`).
+- The preview widget opens in the Copilot side panel.
+- The user can request changes in the chat: “Add an email field”, “Change the theme to dark”. The LLM calls `generateUIFromTicket` again at each iteration.
 
-**Outils impliqués :** `generateUIFromTicket`
+**Tools involved:** `generateUIFromTicket`
 
 ---
 
-### Cas 2 — Créer un ticket puis générer son UI
+### Case 2 — Create a ticket, then generate its UI
 
-**Quand :** l'utilisateur veut un ticket ET une interface, mais le ticket n'existe pas encore.
+**When:** the user wants a ticket AND an interface, but the ticket does not exist yet.
 
-**Flux :**
+**Flow:**
 
 ```
-"Crée un ticket pour un formulaire de contact, puis génère son interface"
+"Create a ticket for a contact form, then generate its interface"
         │
         ▼
   createTicket(title, description, priority)
         │
         ▼
-  Le ticket apparaît dans le backlog (widget Ticket Board)
+  The ticket appears in the backlog (Ticket Board widget)
         │
         ▼
   generateUIFromTicket(ticketId, htmlCode)
         │
         ▼
-  Le widget preview s'ouvre avec l'interface
+  The preview widget opens with the interface
 ```
 
-**Ce qui se passe :**
-- Le LLM crée d'abord le ticket avec `createTicket` (le Ticket Board se rafraîchit).
-- Puis il enchaîne automatiquement avec `generateUIFromTicket` pour générer l'UI.
-- Le résultat est le même que le Cas 1 : le HTML est sur le ticket, le preview est ouvert.
+**What happens:**
+- The LLM first creates the ticket with `createTicket` (the Ticket Board refreshes).
+- Then it automatically chains into `generateUIFromTicket` to generate the UI.
+- The result is the same as in Case 1: the HTML is on the ticket, and the preview opens.
 
-**Outils impliqués :** `createTicket` → `generateUIFromTicket`
+**Tools involved:** `createTicket` → `generateUIFromTicket`
 
 ---
 
-### Cas 3 — Travailler sur une UI libre, sans ticket
+### Case 3 — Work on a standalone UI, without a ticket
 
-**Quand :** l'utilisateur veut juste prototyper une interface sans créer de ticket. C'est le mode « bac à sable ».
+**When:** the user just wants to prototype an interface without creating a ticket. This is the “sandbox” mode.
 
-**Flux :**
+**Flow:**
 
 ```
-"Je voudrais créer une interface de remboursement de frais, thème noir, titre orange"
+"I want to create an expense reimbursement interface, dark theme, orange title"
         │
         ▼
   generateUI(description, htmlCode)
         │
         ▼
-  Le widget preview s'ouvre avec l'interface
+  The preview widget opens with the interface
         │
         ▼
-  "Ajoute une section justificatif avec upload de fichier"
+  "Add a supporting documents section with file upload"
         │
         ▼
   updateUI(description, htmlCode)
         │
         ▼
-  Le widget preview se met à jour
+  The preview widget updates
         │
         ▼
-  (Optionnel) "Sauvegarde ça dans un ticket"
+  (Optional) "Save this in a ticket"
         │
         ▼
-  createTicket(title, description, htmlCode)  ← AVEC le htmlCode !
+  createTicket(title, description, htmlCode)  ← WITH htmlCode!
         │
         ▼
-  Le ticket est créé avec l'UI déjà enregistrée
+  The ticket is created with the UI already saved
 ```
 
-**Ce qui se passe :**
-- Le LLM utilise `generateUI` pour la première génération (pas de ticket, pas de sauvegarde serveur).
-- Les modifications passent par `updateUI` (même logique, juste le code mis à jour).
-- Le widget preview s'ouvre et se met à jour à chaque itération.
-- **Point critique :** quand l'utilisateur veut sauvegarder, le LLM doit appeler `createTicket` **avec le paramètre `htmlCode`** contenant le dernier HTML de la conversation. Sans ça, le ticket est créé vide et tout le travail est perdu.
+**What happens:**
+- The LLM uses `generateUI` for the first generation (no ticket, no server-side save).
+- Changes go through `updateUI` (same logic, just updated code).
+- The preview widget opens and updates at each iteration.
+- **Critical point:** when the user wants to save, the LLM must call `createTicket` **with the `htmlCode` parameter** containing the latest HTML from the conversation. Without it, the ticket is created empty and all the work is lost.
 
-**Outils impliqués :** `generateUI` → `updateUI` (×N) → `createTicket` avec `htmlCode`
+**Tools involved:** `generateUI` → `updateUI` (×N) → `createTicket` with `htmlCode`
 
 ---
 
-## Implémentation côté serveur (MCP tools)
+## Server-side implementation (MCP tools)
 
-Les outils de génération d'UI sont enregistrés dans `mcp-server/src/mcp-server.ts` avec `registerAppTool` du package `@modelcontextprotocol/ext-apps/server`.
+UI generation tools are registered in `mcp-server/src/mcp-server.ts` with `registerAppTool` from the package `@modelcontextprotocol/ext-apps/server`.
 
-### generateUI — génération libre (Cas 3)
+### generateUI — standalone generation (Case 3)
 
 ```typescript
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
@@ -157,22 +157,22 @@ registerAppTool(
   server,
   'generateUI',
   {
-    description: 'Genere une interface HTML/CSS/JS complete a partir d\'une description',
+    description: 'Generate a complete HTML/CSS/JS interface from a description',
     inputSchema: {
-      description: z.string().describe('Description de l\'interface generee'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet auto-contenu'),
+      description: z.string().describe('Description of the generated interface'),
+      htmlCode: z.string().describe('Complete self-contained HTML/CSS/JS code'),
     },
-    // _meta.ui.resourceUri → dit au host M365 d'ouvrir le widget preview.html
+    // _meta.ui.resourceUri → tells the M365 host to open the preview.html widget
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ description, htmlCode }) => {
-    // Pas de sauvegarde serveur ! Le HTML transite juste vers le widget.
+    // No server-side save! The HTML is only forwarded to the widget.
     return {
-      content: [{ type: 'text' as const, text: `Interface generee: ${description}` }],
+      content: [{ type: 'text' as const, text: `Generated interface: ${description}` }],
       structuredContent: {
-        type: 'generate',       // le widget utilise ce champ pour le badge "Généré"
+        type: 'generate',       // the widget uses this field for the "Generated" badge
         description,
-        htmlCode,               // ← le code complet passe dans structuredContent
+        htmlCode,               // ← the full code travels in structuredContent
         timestamp: new Date().toISOString(),
       },
     };
@@ -180,30 +180,30 @@ registerAppTool(
 );
 ```
 
-**Points importants :**
-- `_meta.ui.resourceUri: PREVIEW_URI` → indique au host M365 Copilot d'ouvrir le widget `ui-preview-widget.html` quand cet outil retourne un résultat.
-- `structuredContent.htmlCode` → c'est ce que le widget reçoit via `App.ontoolresult()`.
-- **Pas de sauvegarde fichier** : le HTML est uniquement dans la réponse. Si l'utilisateur recharge la page, c'est perdu (c'est voulu — mode bac à sable).
+**Important points:**
+- `_meta.ui.resourceUri: PREVIEW_URI` → tells the M365 Copilot host to open the `ui-preview-widget.html` widget when this tool returns a result.
+- `structuredContent.htmlCode` → this is what the widget receives through `App.ontoolresult()`.
+- **No file save**: the HTML is only in the response. If the user reloads the page, it is lost (this is intentional—sandbox mode).
 
-### updateUI — modification itérative (Cas 3)
+### updateUI — iterative modification (Case 3)
 
 ```typescript
 registerAppTool(
   server,
   'updateUI',
   {
-    description: 'Met a jour l\'interface existante avec les modifications demandees',
+    description: 'Update the existing interface with the requested changes',
     inputSchema: {
-      description: z.string().describe('Description des modifications apportees'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet mis a jour'),
+      description: z.string().describe('Description of the changes made'),
+      htmlCode: z.string().describe('Complete updated HTML/CSS/JS code'),
     },
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ description, htmlCode }) => {
     return {
-      content: [{ type: 'text' as const, text: `Interface mise a jour: ${description}` }],
+      content: [{ type: 'text' as const, text: `Updated interface: ${description}` }],
       structuredContent: {
-        type: 'update',         // le widget affiche "Mis à jour" au lieu de "Généré"
+        type: 'update',         // the widget displays "Updated" instead of "Generated"
         description,
         htmlCode,
         timestamp: new Date().toISOString(),
@@ -213,24 +213,24 @@ registerAppTool(
 );
 ```
 
-**Identique à `generateUI`** sauf `type: 'update'` dans `structuredContent`. Le widget affiche un badge différent mais le rendu est le même.
+**Identical to `generateUI`** except for `type: 'update'` in `structuredContent`. The widget displays a different badge, but rendering is the same.
 
-### generateUIFromTicket — génération liée à un ticket (Cas 1 et 2)
+### generateUIFromTicket — generation tied to a ticket (Cases 1 and 2)
 
 ```typescript
 registerAppTool(
   server,
   'generateUIFromTicket',
   {
-    description: 'Genere une interface HTML/CSS/JS a partir de la description d\'un ticket puis enregistre la proposition UI sur ce ticket',
+    description: 'Generate an HTML/CSS/JS interface from a ticket description, then save the UI proposal on that ticket',
     inputSchema: {
-      ticketId: z.string().describe('Identifiant du ticket (ex: US-001)'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet genere'),
+      ticketId: z.string().describe('Ticket identifier (example: US-001)'),
+      htmlCode: z.string().describe('Generated complete HTML/CSS/JS code'),
     },
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ ticketId, htmlCode }) => {
-    // Sauvegarde côté serveur → le ticket est mis à jour
+    // Server-side save → the ticket is updated
     const tickets = loadTickets();
     const { ticket, index } = findTicket(tickets, ticketId);
     const updatedTicket: Ticket = { ...ticket, uiProposal: htmlCode };
@@ -238,14 +238,14 @@ registerAppTool(
     saveTickets(tickets);
 
     return {
-      content: [{ type: 'text' as const, text: `Proposition UI generee et enregistree pour ${ticketId}.` }],
+      content: [{ type: 'text' as const, text: `Generated UI proposal saved for ${ticketId}.` }],
       structuredContent: {
         type: 'generate',
         ticketId,
         title: updatedTicket.title,
         description: updatedTicket.description,
         htmlCode,
-        ticket: updatedTicket,   // le ticket complet pour info
+        ticket: updatedTicket,   // the full ticket for reference
         timestamp: new Date().toISOString(),
       },
     };
@@ -253,22 +253,22 @@ registerAppTool(
 );
 ```
 
-**Différence clé avec `generateUI`** : ici le HTML est **écrit dans `tickets.json`** (champ `uiProposal`). Le widget Ticket Board peut ensuite détecter que le ticket a une UI (bouton "Voir & Éditer l'UI" vs "Générer l'UI").
+**Key difference from `generateUI`**: here the HTML is **written into `tickets.json`** (`uiProposal` field). The Ticket Board widget can then detect that the ticket has a UI (button "View & Edit UI" vs "Generate UI").
 
-### createTicket avec htmlCode — sauvegarde d'une UI libre (Cas 3 → ticket)
+### createTicket with htmlCode — saving a standalone UI (Case 3 → ticket)
 
 ```typescript
 registerAppTool(
   server,
   'createTicket',
   {
-    description: 'Cree un nouveau ticket dans le backlog UI. Si htmlCode est fourni, enregistre aussi la proposition UI directement.',
+    description: 'Create a new ticket in the UI backlog. If htmlCode is provided, also save the UI proposal directly.',
     inputSchema: {
       title: z.string(),
       description: z.string(),
       priority: z.enum(['High', 'Medium', 'Low']).optional(),
       assignee: z.string().optional(),
-      htmlCode: z.string().optional(),  // ← OPTIONNEL mais crucial pour le Cas 3
+      htmlCode: z.string().optional(),  // ← OPTIONAL but crucial for Case 3
     },
     _meta: { ui: { resourceUri: TICKETS_LIST_URI } },
   },
@@ -285,16 +285,16 @@ registerAppTool(
       description,
       priority: priority ?? 'Medium',
       status: 'To Do',
-      assignee: assignee ?? 'Non assigne',
-      uiProposal: htmlCode || null,    // ← Si htmlCode fourni, l'UI est sur le ticket
+      assignee: assignee ?? 'Unassigned',
+      uiProposal: htmlCode || null,    // ← If htmlCode is provided, the UI is on the ticket
     };
     tickets.push(newTicket);
     saveTickets(tickets);
 
     return {
-      content: [{ type: 'text' as const, text: `Ticket ${newId} cree: ${title}` }],
+      content: [{ type: 'text' as const, text: `Ticket ${newId} created: ${title}` }],
       structuredContent: {
-        tickets: summarizeTickets(tickets),  // la liste complète pour le Ticket Board
+        tickets: summarizeTickets(tickets),  // the full list for the Ticket Board
         createdTicketId: newId,
         timestamp: new Date().toISOString(),
       },
@@ -303,15 +303,15 @@ registerAppTool(
 );
 ```
 
-**Le paramètre `htmlCode` est optionnel mais vital.** Quand il est fourni, le ticket est créé avec l'UI déjà en place. Quand il est absent, le ticket est créé sans UI et le travail de la conversation est perdu.
+**The `htmlCode` parameter is optional but vital.** When it is provided, the ticket is created with the UI already in place. When it is missing, the ticket is created without a UI and the work from the conversation is lost.
 
 ---
 
-## Implémentation côté widget (ui-preview-widget.html)
+## Widget-side implementation (`ui-preview-widget.html`)
 
-Le widget de preview est le fichier `mcp-server/assets/ui-preview-widget.html`. C'est un fichier HTML autonome qui tourne dans une iframe sandboxée dans M365 Copilot.
+The preview widget is the file `mcp-server/assets/ui-preview-widget.html`. It is a standalone HTML file that runs inside a sandboxed iframe in M365 Copilot.
 
-### Enregistrement comme ressource MCP
+### Registration as an MCP resource
 
 ```typescript
 const previewWidgetHtml = readFileSync(join(__dirname, '../assets/ui-preview-widget.html'), 'utf8');
@@ -321,7 +321,7 @@ registerAppResource(
   server,
   'UI Preview Widget',
   PREVIEW_URI,
-  { description: 'Widget de previsualisation des interfaces generees' },
+  { description: 'Preview widget for generated interfaces' },
   async () => ({
     contents: [{
       uri: PREVIEW_URI,
@@ -344,14 +344,14 @@ registerAppResource(
 );
 ```
 
-**Points importants :**
-- `RESOURCE_MIME_TYPE` = `'application/vnd.mcp.ext-apps.widget+html'` → indique à M365 que c'est un widget HTML.
-- `csp.resourceDomains` → liste blanche des CDN autorisés dans l'iframe (voir skill [mcp-app-csp-resources.md](mcp-app-csp-resources.md)).
-- Le widget est lu au démarrage du serveur et servi tel quel.
+**Important points:**
+- `RESOURCE_MIME_TYPE` = `'application/vnd.mcp.ext-apps.widget+html'` → tells M365 that this is an HTML widget.
+- `csp.resourceDomains` → allowlist of CDNs allowed in the iframe (see skill [mcp-app-csp-resources.md](mcp-app-csp-resources.md)).
+- The widget is read when the server starts and served as-is.
 
-### Réception des données dans le widget
+### Receiving data in the widget
 
-Le widget utilise le SDK `@modelcontextprotocol/ext-apps` côté client :
+The widget uses the `@modelcontextprotocol/ext-apps` SDK on the client side:
 
 ```javascript
 import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
@@ -359,39 +359,39 @@ import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps
 const app = new App({ name: 'ui-preview', version: '1.0.0' });
 
 app.ontoolresult = (result) => {
-  // ⚠️ Les données sont TOUJOURS dans result.structuredContent
-  // PAS dans result.data, PAS dans result.content, PAS dans result directement
+  // ⚠️ Data is ALWAYS in result.structuredContent
+  // NOT in result.data, NOT in result.content, NOT in result directly
   const data = result.structuredContent;
 
   if (data && data.htmlCode) {
     showPreview(data.htmlCode, data.description || '', data.type || 'generate');
   } else {
-    showError('Aucun code HTML recu.');
+    showError('No HTML code received.');
   }
 };
 
 await app.connect();
 ```
 
-**Piège classique** : `result.structuredContent` et non `result.data`. C'est la source d'erreur n°1 quand on crée un nouveau widget.
+**Classic trap**: `result.structuredContent`, not `result.data`. This is the #1 source of errors when creating a new widget.
 
-### Injection du HTML dans l'iframe de preview
+### Injecting HTML into the preview iframe
 
 ```javascript
 function showPreview(htmlCode, description, type) {
   currentHtmlCode = htmlCode;
 
-  // Injection directe dans l'iframe — le HTML généré par le LLM devient une page complète
+  // Direct injection into the iframe — the HTML generated by the LLM becomes a complete page
   const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
   doc.open();
   doc.write(htmlCode);
   doc.close();
 
-  // Badge "Généré" ou "Mis à jour"
-  statusBadge.textContent = type === 'update' ? 'Mis a jour' : 'Genere';
+  // "Generated" or "Updated" badge
+  statusBadge.textContent = type === 'update' ? 'Updated' : 'Generated';
   infoBar.textContent = description;
 
-  // Auto-ouverture en plein écran à la première génération
+  // Auto-open fullscreen on first generation
   if (!isFullscreen) {
     isFullscreen = true;
     try { app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
@@ -399,11 +399,11 @@ function showPreview(htmlCode, description, type) {
 }
 ```
 
-**Pourquoi `doc.open/write/close` ?** Parce que le HTML généré par le LLM est un document HTML **complet** (avec `<!DOCTYPE>`, `<html>`, `<style>`, `<script>`...). On ne peut pas juste mettre `innerHTML` — il faut écraser tout le document de l'iframe.
+**Why `doc.open/write/close`?** Because the HTML generated by the LLM is a **complete** HTML document (with `<!DOCTYPE>`, `<html>`, `<style>`, `<script>`...). You cannot just set `innerHTML`—you need to replace the entire iframe document.
 
-### Vue Code / Aperçu (toggle)
+### Code / Preview view (toggle)
 
-Le widget a deux modes d'affichage : le rendu visuel (iframe) et le code source (PrismJS) :
+The widget has two display modes: the visual rendering (iframe) and the source code (PrismJS):
 
 ```javascript
 let showingCode = false;
@@ -413,129 +413,129 @@ btnToggle.addEventListener('click', () => {
   if (showingCode) {
     previewEl.style.display = 'none';
     codeView.style.display = 'block';
-    codeContent.textContent = currentHtmlCode;   // code brut dans un <code>
-    Prism.highlightElement(codeContent);           // coloration syntaxique
-    // Le bouton passe de "Code" à "Aperçu"
+    codeContent.textContent = currentHtmlCode;   // raw code in a <code>
+    Prism.highlightElement(codeContent);          // syntax highlighting
+    // The button changes from "Code" to "Preview"
   } else {
     previewEl.style.display = 'block';
     codeView.style.display = 'none';
-    // Le bouton repasse à "Code"
+    // The button switches back to "Code"
   }
 });
 ```
 
-**Librairies utilisées :**
-- [PrismJS](https://prismjs.com/) pour la coloration syntaxique (thème `prism-tomorrow` = fond sombre)
-- Plugin `line-numbers` pour les numéros de ligne
-- Chargées via CDN (déclarées dans `csp.resourceDomains`)
+**Libraries used:**
+- [PrismJS](https://prismjs.com/) for syntax highlighting (theme `prism-tomorrow` = dark background)
+- `line-numbers` plugin for line numbers
+- Loaded via CDN (declared in `csp.resourceDomains`)
 
-### Bouton Copier
+### Copy button
 
 ```javascript
 btnCopy.addEventListener('click', async () => {
   await navigator.clipboard.writeText(currentHtmlCode);
-  btnCopy.textContent = 'Copié !';
-  setTimeout(() => { btnCopy.textContent = 'Copier'; }, 1500);
+  btnCopy.textContent = 'Copied!';
+  setTimeout(() => { btnCopy.textContent = 'Copy'; }, 1500);
 });
 ```
 
-### Plein écran et retour
+### Fullscreen and Back
 
 ```javascript
-// Ouvrir en plein écran (API MCP Apps)
+// Open in fullscreen (MCP Apps API)
 btnOpen.addEventListener('click', async () => {
   await app.requestDisplayMode({ mode: 'fullscreen' });
   isFullscreen = true;
 });
 
-// Retour au mode inline (panneau latéral)
+// Return to inline mode (side panel)
 btnBack.addEventListener('click', async () => {
   await app.requestDisplayMode({ mode: 'inline' });
   isFullscreen = false;
 });
 ```
 
-**Comportement auto-fullscreen** : à la première réception de données (`showPreview`), le widget passe automatiquement en plein écran. Ça donne une meilleure expérience car l'interface générée est trop petite en panneau latéral (~400px).
+**Auto-fullscreen behavior**: on first data reception (`showPreview`), the widget automatically switches to fullscreen. This gives a better experience because the generated interface is too small in the side panel (~400px).
 
 ---
 
-## Routage LLM — comment le bon outil est choisi
+## LLM routing — how the right tool is chosen
 
-### description_for_model (ai-plugin.json)
+### description_for_model (`ai-plugin.json`)
 
-Le champ le plus important du projet. C'est un **bloc de texte unique** que le LLM lit comme une consigne. Il contient les règles de routage entre les 3 cas :
+The most important field in the project. It is a **single text block** that the LLM reads as an instruction. It contains the routing rules between the 3 cases:
 
 ```json
 {
-  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. TROIS CAS D'USAGE: CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket pour generer ou modifier l'UI d'un ticket existant. CAS 2 - Creer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket. CAS 3 - UI libre SANS ticket: quand l'utilisateur veut juste une interface sans parler de ticket, utiliser generateUI pour creer et updateUI pour modifier. [...] IMPORTANT: quand l'utilisateur demande de creer un ticket apres avoir travaille sur une UI libre, TOUJOURS inclure le htmlCode dans createTicket pour ne pas perdre le travail."
+  "description_for_model": "UI ticket management plugin and web interface generation. THREE USE CASES: CASE 1 - UI from an existing ticket: use generateUIFromTicket to generate or modify the UI of an existing ticket. CASE 2 - Create a ticket then its UI: first createTicket, then generateUIFromTicket. CASE 3 - Standalone UI WITHOUT ticket: when the user just wants an interface without mentioning a ticket, use generateUI to create and updateUI to modify. [...] IMPORTANT: when the user asks to create a ticket after working on a standalone UI, ALWAYS include htmlCode in createTicket so the work is not lost."
 }
 ```
 
-**Techniques qui marchent :**
-- Mots-clés en **MAJUSCULES** : `TOUJOURS`, `JAMAIS`, `IMPORTANT`, `REGLE`
-- Numérotation des cas : `CAS 1`, `CAS 2`, `CAS 3`
-- Règles absolues au lieu de suggestions molles : « TOUJOURS inclure » vs « peut inclure »
-- Répéter la même règle dans `description_for_model` ET dans `instruction.txt`
+**Techniques that work:**
+- Keywords in **UPPERCASE**: `ALWAYS`, `NEVER`, `IMPORTANT`, `RULE`
+- Numbered cases: `CASE 1`, `CASE 2`, `CASE 3`
+- Absolute rules instead of soft suggestions: “ALWAYS include” vs “can include”
+- Repeat the same rule in `description_for_model` AND in `instruction.txt`
 
-### instruction.txt (prompt système de l'agent)
+### instruction.txt (agent system prompt)
 
-Le fichier `appPackage/instruction.txt` est le prompt système envoyé au LLM. Il renforce les règles de routage et ajoute les consignes de génération HTML :
+The file `appPackage/instruction.txt` is the system prompt sent to the LLM. It reinforces the routing rules and adds HTML generation instructions:
 
 ```
-## Regles de generation
-- Design moderne, propre et responsive
-- CSS integre dans un bloc <style>
-- Code auto-contenu dans un seul fichier HTML
-- Pas de dependances externes sauf si demande
+## Generation rules
+- Modern, clean, responsive design
+- CSS embedded in a <style> block
+- Self-contained code in a single HTML file
+- No external dependencies unless requested
 
 ## Workflow
-### Generation libre
-1. Si l'utilisateur decrit une UI sans ticket → generateUI
-2. Pour modifier l'UI courante → updateUI (code HTML complet, pas juste le diff)
+### Standalone generation
+1. If the user describes a UI without a ticket → generateUI
+2. To modify the current UI → updateUI (full HTML code, not just the diff)
 
-### Workflow tickets
-1. "genere l'UI du ticket US-001" → generateUIFromTicket
-2. Pour sauvegarder une UI libre → createTicket avec htmlCode
+### Ticket workflow
+1. "generate the UI for ticket US-001" → generateUIFromTicket
+2. To save a standalone UI → createTicket with htmlCode
 ```
 
 ---
 
-## Le schéma des tickets
+## The ticket schema
 
-Chaque ticket est stocké dans `mcp-server/data/tickets.json` :
+Each ticket is stored in `mcp-server/data/tickets.json`:
 
 ```typescript
 type Ticket = {
   id: string;            // "US-001", "US-002"...
-  title: string;         // Titre court
-  description: string;   // Description fonctionnelle détaillée (user story)
+  title: string;         // Short title
+  description: string;   // Detailed functional description (user story)
   priority: 'High' | 'Medium' | 'Low';
   status: 'To Do' | 'In Progress' | 'Done';
-  assignee: string;      // Nom ou "Non assigné"
-  uiProposal: string | null;  // ← Le code HTML/CSS/JS complet, ou null
+  assignee: string;      // Name or "Unassigned"
+  uiProposal: string | null;  // ← The full HTML/CSS/JS code, or null
 };
 ```
 
-**Le champ `uiProposal`** est la clé : c'est là que le HTML est stocké quand on utilise `generateUIFromTicket` ou `createTicket` avec `htmlCode`. Le widget Ticket Board utilise ce champ pour afficher soit "Générer l'UI" (si null) soit "Voir & Éditer l'UI" (si rempli).
+**The `uiProposal` field** is the key: this is where the HTML is stored when using `generateUIFromTicket` or `createTicket` with `htmlCode`. The Ticket Board widget uses this field to display either "Generate UI" (if null) or "View & Edit UI" (if filled).
 
 ---
 
-## Résumé des structuredContent par outil
+## Summary of structuredContent by tool
 
-Chaque outil retourne un format de `structuredContent` différent. Le widget doit savoir quoi en faire :
+Each tool returns a different `structuredContent` format. The widget must know what to do with it:
 
 ### generateUI / updateUI
 
 ```json
 {
-  "type": "generate",       // ou "update"
-  "description": "Description de l'interface",
+  "type": "generate",       // or "update"
+  "description": "Interface description",
   "htmlCode": "<!DOCTYPE html>...",
   "timestamp": "2026-05-20T..."
 }
 ```
 
-→ Le widget lit `data.htmlCode` et l'injecte dans l'iframe.
+→ The widget reads `data.htmlCode` and injects it into the iframe.
 
 ### generateUIFromTicket
 
@@ -546,14 +546,14 @@ Chaque outil retourne un format de `structuredContent` différent. Le widget doi
   "title": "Landing Page Hero Section",
   "description": "As a visitor, I want a hero section...",
   "htmlCode": "<!DOCTYPE html>...",
-  "ticket": { /* ticket complet */ },
+  "ticket": { /* full ticket */ },
   "timestamp": "2026-05-20T..."
 }
 ```
 
-→ Même traitement côté widget (`data.htmlCode` → iframe). La différence est côté serveur (sauvegarde dans `tickets.json`).
+→ Same handling on the widget side (`data.htmlCode` → iframe). The difference is on the server side (save into `tickets.json`).
 
-### createTicket (avec ou sans htmlCode)
+### createTicket (with or without htmlCode)
 
 ```json
 {
@@ -566,88 +566,88 @@ Chaque outil retourne un format de `structuredContent` différent. Le widget doi
 }
 ```
 
-→ Ce format est consommé par le **Ticket Board** (pas le preview). Le champ `hasUiProposal` (boolean) détermine quel bouton afficher par ticket.
+→ This format is consumed by the **Ticket Board** (not the preview). The `hasUiProposal` field (boolean) determines which button to display for each ticket.
 
 ---
 
-## Différences techniques entre les outils (tableau récapitulatif)
+## Technical differences between tools (summary table)
 
-| Outil | Sauvegarde serveur | `resourceUri` | Widget ouvert | `structuredContent.htmlCode` |
+| Tool | Server-side save | `resourceUri` | Widget opened | `structuredContent.htmlCode` |
 |-------|-------------------|---------------|---------------|------------------------------|
-| `generateUI` | Non | `preview.html` | Preview | Oui |
-| `updateUI` | Non | `preview.html` | Preview | Oui |
-| `generateUIFromTicket` | Oui (`uiProposal`) | `preview.html` | Preview | Oui |
-| `createTicket` avec `htmlCode` | Oui (ticket + UI) | `tickets-list.html` | Ticket Board | Non (liste de tickets) |
-| `createTicket` sans `htmlCode` | Oui (ticket seul) | `tickets-list.html` | Ticket Board | Non |
-| `saveUIToTicket` | Oui (`uiProposal`) | — | Aucun | Non |
+| `generateUI` | No | `preview.html` | Preview | Yes |
+| `updateUI` | No | `preview.html` | Preview | Yes |
+| `generateUIFromTicket` | Yes (`uiProposal`) | `preview.html` | Preview | Yes |
+| `createTicket` with `htmlCode` | Yes (ticket + UI) | `tickets-list.html` | Ticket Board | No (ticket list) |
+| `createTicket` without `htmlCode` | Yes (ticket only) | `tickets-list.html` | Ticket Board | No |
+| `saveUIToTicket` | Yes (`uiProposal`) | — | None | No |
 
 ---
 
-## Exemples de prompts et résultat attendu
+## Examples of prompts and expected result
 
-| Prompt utilisateur | Cas | Outils appelés |
+| User prompt | Case | Tools called |
 |---|---|---|
-| « Génère l'UI du ticket US-001 » | 1 | `generateUIFromTicket` |
-| « Modifie l'interface du US-002 : ajoute un mode sombre » | 1 | `generateUIFromTicket` |
-| « Crée un ticket pour un dashboard RH et génère son UI » | 2 | `createTicket` → `generateUIFromTicket` |
-| « Je veux une interface de remboursement de frais » | 3 | `generateUI` |
-| « Ajoute un champ date et un sélecteur de devise » | 3 | `updateUI` |
-| « Sauvegarde cette interface dans un ticket » | 3→ticket | `createTicket` avec `htmlCode` |
+| “Generate the UI for ticket US-001” | 1 | `generateUIFromTicket` |
+| “Modify the interface of US-002: add a dark mode” | 1 | `generateUIFromTicket` |
+| “Create a ticket for an HR dashboard and generate its UI” | 2 | `createTicket` → `generateUIFromTicket` |
+| “I want an expense reimbursement interface” | 3 | `generateUI` |
+| “Add a date field and a currency selector” | 3 | `updateUI` |
+| “Save this interface in a ticket” | 3→ticket | `createTicket` with `htmlCode` |
 
 ---
 
-## Le piège classique : perdre le travail en sauvegardant
+## The classic trap: losing work when saving
 
-Le problème le plus fréquent arrive dans le **Cas 3** quand l'utilisateur a passé plusieurs itérations à peaufiner une UI libre, puis demande « crée un ticket avec ça ».
+The most frequent problem happens in **Case 3** when the user has spent several iterations refining a standalone UI, then asks “create a ticket with this”.
 
-Si le LLM appelle `createTicket` **sans** le paramètre `htmlCode`, le ticket est créé mais **l'UI n'est pas enregistrée**. Tout le travail de la conversation est perdu.
+If the LLM calls `createTicket` **without** the `htmlCode` parameter, the ticket is created but **the UI is not saved**. All the work from the conversation is lost.
 
-**La solution :** le `description_for_model` contient une règle explicite :
+**The solution:** `description_for_model` contains an explicit rule:
 
-> *IMPORTANT: quand l'utilisateur demande de créer un ticket après avoir travaillé sur une UI libre, TOUJOURS inclure le htmlCode dans createTicket pour ne pas perdre le travail.*
+> *IMPORTANT: when the user asks to create a ticket after working on a standalone UI, ALWAYS include htmlCode in createTicket so the work is not lost.*
 
-Si malgré ça le LLM oublie le `htmlCode`, il faut renforcer la règle dans `instruction.txt` avec des formulations absolues (`TOUJOURS`, `JAMAIS`). Voir [llm-tool-routing.md](llm-tool-routing.md) pour les techniques de renforcement.
+If the LLM still forgets `htmlCode`, you need to reinforce the rule in `instruction.txt` with absolute wording (`ALWAYS`, `NEVER`). See [llm-tool-routing.md](llm-tool-routing.md) for reinforcement techniques.
 
 ---
 
-## Fichiers clés
+## Key files
 
-| Fichier | Rôle |
+| File | Role |
 |---------|------|
-| `mcp-server/src/mcp-server.ts` | Enregistrement de tous les tools MCP et resources |
-| `mcp-server/assets/ui-preview-widget.html` | Widget de preview (iframe + code + fullscreen) |
-| `mcp-server/assets/tickets-list-widget.html` | Widget Ticket Board |
-| `mcp-server/data/tickets.json` | Données des tickets (runtime, modifiable) |
-| `mcp-server/data/tickets-default.json` | Données initiales (reset demo) |
-| `appPackage/ai-plugin.json` | Routage LLM (`description_for_model`) + schémas des tools |
-| `appPackage/instruction.txt` | Prompt système de l'agent (règles de génération HTML) |
+| `mcp-server/src/mcp-server.ts` | Registration of all MCP tools and resources |
+| `mcp-server/assets/ui-preview-widget.html` | Preview widget (iframe + code + fullscreen) |
+| `mcp-server/assets/tickets-list-widget.html` | Ticket Board widget |
+| `mcp-server/data/tickets.json` | Ticket data (runtime, modifiable) |
+| `mcp-server/data/tickets-default.json` | Initial data (demo reset) |
+| `appPackage/ai-plugin.json` | LLM routing (`description_for_model`) + tool schemas |
+| `appPackage/instruction.txt` | Agent system prompt (HTML generation rules) |
 
 ---
 
-## Pour ajouter un nouvel outil de génération d'UI
+## To add a new UI generation tool
 
-Si tu veux ajouter un nouveau type de génération (par ex. `generateUIFromTemplate`), voici le pattern :
+If you want to add a new generation type (for example `generateUIFromTemplate`), here is the pattern:
 
-1. **Enregistrer le tool** dans `mcp-server.ts` avec `registerAppTool` :
-   - `inputSchema` avec `z.string()` pour les paramètres
-   - `_meta: { ui: { resourceUri: PREVIEW_URI } }` pour ouvrir le preview
-   - Retourner `structuredContent` avec `htmlCode`
+1. **Register the tool** in `mcp-server.ts` with `registerAppTool`:
+   - `inputSchema` with `z.string()` for parameters
+   - `_meta: { ui: { resourceUri: PREVIEW_URI } }` to open the preview
+   - Return `structuredContent` with `htmlCode`
 
-2. **Ajouter la déclaration** dans `ai-plugin.json` :
-   - Section `functions[]` pour la description courte
-   - Section `runtimes[0].spec.x-mcp_tool_description.tools[]` pour le schéma complet
-   - Section `run_for_functions[]` pour l'activer
+2. **Add the declaration** in `ai-plugin.json`:
+   - `functions[]` section for the short description
+   - `runtimes[0].spec.x-mcp_tool_description.tools[]` section for the full schema
+   - `run_for_functions[]` section to enable it
 
-3. **Mettre à jour `description_for_model`** pour que le LLM sache quand utiliser ce nouvel outil
+3. **Update `description_for_model`** so the LLM knows when to use this new tool
 
-4. **Le widget n'a pas besoin de changer** tant que le `structuredContent` contient `htmlCode` — il le rend automatiquement.
+4. **The widget does not need to change** as long as `structuredContent` contains `htmlCode`—it will render it automatically.
 
 ---
 
-## Skills liés
+## Related skills
 
-- [llm-tool-routing.md](llm-tool-routing.md) — Comment configurer `description_for_model` pour que le LLM choisisse le bon outil
-- [widget-display-and-resourceuri.md](widget-display-and-resourceuri.md) — Comment `resourceUri` contrôle quel widget s'ouvre
-- [widget-realtime-updates.md](widget-realtime-updates.md) — Comment le preview se met à jour automatiquement pendant que le LLM travaille
-- [widget-fullscreen-and-state.md](widget-fullscreen-and-state.md) — Comment le plein écran préserve l'état du widget
-- [mcp-app-csp-resources.md](mcp-app-csp-resources.md) — Comment débloquer les CDN dans les iframes M365
+- [llm-tool-routing.md](llm-tool-routing.md) — How to configure `description_for_model` so the LLM chooses the right tool
+- [widget-display-and-resourceuri.md](widget-display-and-resourceuri.md) — How `resourceUri` controls which widget opens
+- [widget-realtime-updates.md](widget-realtime-updates.md) — How the preview updates automatically while the LLM is working
+- [widget-fullscreen-and-state.md](widget-fullscreen-and-state.md) — How fullscreen preserves widget state
+- [mcp-app-csp-resources.md](mcp-app-csp-resources.md) — How to unblock CDNs inside M365 iframes

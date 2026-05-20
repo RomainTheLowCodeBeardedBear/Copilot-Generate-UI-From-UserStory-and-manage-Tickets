@@ -1,12 +1,12 @@
-# Comment mettre à jour un widget en temps réel pendant que l'IA travaille
+# How to update a widget in real time while the AI is working
 
-## Le problème
-Dans ce projet, l'utilisateur peut demander une modification d'UI alors que la preview est déjà ouverte en plein écran. Le LLM répond dans le chat, appelle `generateUIFromTicket`, et enregistre le nouveau HTML sur le serveur. Pourtant, le widget de preview continue souvent d'afficher l'ancien rendu.
+## The problem
+In this project, the user can request a UI change while the preview is already open in fullscreen. The LLM responds in the chat, calls `generateUIFromTicket`, and saves the new HTML on the server. However, the preview widget often keeps showing the old rendering.
 
-La cause est simple : l'iframe du widget ne reçoit aucune notification push quand les données du ticket changent côté serveur.
+The cause is simple: the widget iframe receives no push notification when the ticket data changes on the server side.
 
-## La solution
-La solution retenue est un polling léger avec détection de changement. Le widget relit périodiquement `getTicket` et compare la nouvelle valeur de `uiProposal` avec la dernière version connue.
+## The solution
+The chosen solution is lightweight polling with change detection. The widget periodically rereads `getTicket` and compares the new `uiProposal` value with the last known version.
 
 ```javascript
 let lastHtml = null;
@@ -23,35 +23,35 @@ function startPolling(ticketId) {
       lastHtml = ticket.uiProposal;
       updatePreviewIframe(ticket.uiProposal);
     }
-  }, 5000); // toutes les 5 secondes
+  }, 5000); // every 5 seconds
 }
 ```
 
-### Deux usages du polling dans ce projet
-1. **Polling "Générer"** : après un clic sur **Générer l'UI** dans le board, le widget envoie un message au chat puis interroge `getTicket` toutes les 5 secondes jusqu'à ce que `uiProposal` passe de `null` à un HTML complet. Dès que c'est prêt, il ouvre automatiquement la preview en plein écran.
-2. **Polling "Preview"** : pendant que la preview est ouverte, le widget continue d'interroger `getTicket` toutes les 5 secondes. Si `uiProposal` change parce que l'utilisateur a demandé une modification dans le chat, l'iframe est mise à jour immédiatement via `srcdoc`.
+### Two polling uses in this project
+1. **"Generate" polling**: after a click on **Generate UI** in the board, the widget sends a message to the chat and then queries `getTicket` every 5 seconds until `uiProposal` changes from `null` to complete HTML. As soon as it is ready, it automatically opens the preview in fullscreen.
+2. **"Preview" polling**: while the preview is open, the widget keeps querying `getTicket` every 5 seconds. If `uiProposal` changes because the user requested a modification in the chat, the iframe is updated immediately via `srcdoc`.
 
-### Règle importante
-Toujours nettoyer les timers quand on quitte le mode concerné.
+### Important rule
+Always clean up timers when leaving the relevant mode.
 
 ```javascript
 clearInterval(pollId);
 ```
 
-Sans ce nettoyage, vous cumulez des requêtes inutiles, des mises à jour fantômes et des états incohérents.
+Without this cleanup, you accumulate unnecessary requests, ghost updates, and inconsistent state.
 
-### Limitation assumée
-Un polling toutes les 5 secondes introduit un petit délai entre la fin réelle du travail du LLM et l'actualisation visuelle. Pour une démo, c'est acceptable. Pour un produit plus exigeant, il faudrait un mécanisme push ou événementiel.
+### Accepted limitation
+Polling every 5 seconds introduces a small delay between the actual end of the LLM's work and the visual refresh. For a demo, this is acceptable. For a more demanding product, a push or event-driven mechanism would be needed.
 
-## Exemples
-- Dans `tickets-list-widget.html`, `handleTicketAction()` démarre un polling après `app.sendMessage(...)` pour détecter la fin de génération.
-- Dans `renderPreview()`, le widget démarre un autre polling pour surveiller les modifications de `uiProposal` pendant que la preview est affichée.
-- Quand l'utilisateur revient au board, le code appelle `clearInterval(...)` avant de remettre l'état de preview à `null`.
+## Examples
+- In `tickets-list-widget.html`, `handleTicketAction()` starts polling after `app.sendMessage(...)` to detect the end of generation.
+- In `renderPreview()`, the widget starts another poll to monitor changes to `uiProposal` while the preview is displayed.
+- When the user returns to the board, the code calls `clearInterval(...)` before resetting the preview state to `null`.
 
-## Implémentation réelle dans `tickets-list-widget.html`
+## Real implementation in `tickets-list-widget.html`
 
-### Polling de preview pendant l'affichage
-Le code réel ne fait pas un polling abstrait : il gère le timer global, le garde-fou de sortie et la réinjection du contexte LLM.
+### Preview polling while displayed
+The real code does not do abstract polling: it manages the global timer, the exit guardrail, and the reinjection of LLM context.
 
 ```javascript
 function renderPreview() {
@@ -61,7 +61,7 @@ function renderPreview() {
   previewView.style.display = 'flex';
   previewView.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--colorNeutralStroke2,#e5e7eb);background:var(--colorNeutralBackground1,#fff);">
-      <button id="btn-back-preview" style="background:none;border:1px solid var(--colorNeutralStroke1,#d1d5db);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:inherit;">← Retour</button>
+      <button id="btn-back-preview" style="background:none;border:1px solid var(--colorNeutralStroke1,#d1d5db);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:inherit;">← Back</button>
       <h2 style="margin:0;font-size:16px;font-weight:600;">${escapeHtml(state.previewTicketId)} — ${escapeHtml(state.previewTitle)}</h2>
     </div>
     <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
@@ -83,10 +83,10 @@ function renderPreview() {
           state.previewHtml = t.uiProposal;
           const f = document.getElementById('preview-frame');
           if (f) { f.srcdoc = t.uiProposal; }
-          // Re-inject updated context so LLM always has the latest version
+          // Re-inject updated context so the LLM always has the latest version
           try {
             await app.updateModelContext({
-              content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${state.previewTitle || ''}). Voici le code HTML actuel de cette UI :\n\n${t.uiProposal}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+              content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${state.previewTitle || ''}). Here is the current HTML code for this UI:\n\n${t.uiProposal}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
             });
           } catch (_) {}
         }
@@ -105,29 +105,29 @@ function renderPreview() {
 }
 ```
 
-### Polling de génération après `app.sendMessage()`
-Le widget ne lance pas `generateUIFromTicket` directement. Il demande au chat de le faire, puis attend l'apparition de `uiProposal` avec un maximum de 24 tentatives.
+### Generation polling after `app.sendMessage()`
+The widget does not launch `generateUIFromTicket` directly. It asks the chat to do it, then waits for `uiProposal` to appear with a maximum of 24 attempts.
 
 ```javascript
 if (action === 'generate') {
-  const prompt = `Genere l'UI du ticket ${ticketId}`;
-  setBanner(`Envoi de la demande...`, 'info');
+  const prompt = `Generate the UI for ticket ${ticketId}`;
+  setBanner(`Sending request...`, 'info');
 
   try {
     await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
   } catch (e) {
-    setBanner(`💡 Ecrivez dans le chat : "${prompt}"`, 'info');
+    setBanner(`💡 Type this in the chat: "${prompt}"`, 'info');
     return;
   }
 
   // Poll for generation completion then auto-open preview
-  setBanner(`⏳ Generation en cours...`, 'info');
+  setBanner(`⏳ Generation in progress...`, 'info');
   let attempts = 0;
   const pollId = setInterval(async () => {
     attempts++;
     if (attempts > 24) {
       clearInterval(pollId);
-      setBanner(`Generation terminee. Cliquez "Voir & Editer l'UI" pour voir le resultat.`, 'info');
+      setBanner(`Generation completed. Click "View & Edit UI" to see the result.`, 'info');
       return;
     }
     try {
@@ -145,27 +145,27 @@ if (action === 'generate') {
 }
 ```
 
-### Réinjection du HTML courant dans le contexte du modèle
-Le pattern clé n'est pas juste le polling, mais le **polling + `updateModelContext()`**. Deux points réels le montrent :
+### Reinjection of current HTML into the model context
+The key pattern is not just polling, but **polling + `updateModelContext()`**. Two real points show this:
 
 ```javascript
 await app.updateModelContext({
-  content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${ticket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+  content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${ticket.title || ''}). Here is the current HTML code for this UI:\n\n${htmlCode}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
 });
 ```
 
-Puis pendant le polling, le widget remplace ce contexte par la version fraîche :
+Then during polling, the widget replaces this context with the fresh version:
 
 ```javascript
 await app.updateModelContext({
-  content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${state.previewTitle || ''}). Voici le code HTML actuel de cette UI :\n\n${t.uiProposal}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+  content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${state.previewTitle || ''}). Here is the current HTML code for this UI:\n\n${t.uiProposal}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
 });
 ```
 
-Sans cette réinjection, l'IA peut repartir d'une ancienne version du HTML alors que l'iframe montre déjà autre chose.
+Without this reinjection, the AI can restart from an older version of the HTML while the iframe is already showing something else.
 
-### Pattern d'état réel à respecter
-Le timer de preview est stocké dans l'état du widget lui-même :
+### Real state pattern to follow
+The preview timer is stored in the widget state itself:
 
 ```javascript
 const state = {
@@ -179,18 +179,18 @@ const state = {
 };
 ```
 
-Les trois détails importants sont déjà codés :
-- `state.previewPollId` centralise le timer actif ;
-- le garde-fou `if (!state.previewTicketId) { clearInterval(...); ... return; }` arrête le polling si on a quitté la preview ;
-- le bouton retour remet **tout** à `null` avant de repasser inline.
+The three important details are already coded:
+- `state.previewPollId` centralizes the active timer;
+- the guardrail `if (!state.previewTicketId) { clearInterval(...); ... return; }` stops polling if we left the preview;
+- the back button resets **everything** to `null` before switching back to inline mode.
 
-### Pourquoi `getTicket` et pas `viewTicketUI`
-Le choix est explicitement documenté dans le code :
+### Why `getTicket` and not `viewTicketUI`
+The choice is explicitly documented in the code:
 
 ```javascript
 async function openPreview(ticketId) {
   try {
-    // Use getTicket (no resourceUri) to avoid host trying to open preview.html
+    // Use getTicket (no resourceUri) to avoid the host trying to open preview.html
     const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
     const data = result?.structuredContent;
     const ticket = data?.ticket || data;
@@ -202,36 +202,36 @@ async function openPreview(ticketId) {
       savePreviewState(ticketId);
       try {
         await app.updateModelContext({
-          content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${ticket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+          content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${ticket.title || ''}). Here is the current HTML code for this UI:\n\n${htmlCode}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
         });
       } catch (_) {}
       try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
       renderPreview();
     } else {
-      setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
+      setBanner(`No UI available for ${ticketId}.`, 'error');
     }
   } catch (e) {
-    setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
+    setBanner(`Error: ${e instanceof Error ? e.message : 'unable'}`, 'error');
   }
 }
 ```
 
-`getTicket` est le safe read-model pour les widgets. `viewTicketUI` est réservé au routing du host depuis le chat, précisément parce qu'il ouvre une ressource.
+`getTicket` is the safe read model for widgets. `viewTicketUI` is reserved for host routing from the chat, precisely because it opens a resource.
 
-### Déclencher une génération depuis le widget
-Le pattern réel côté widget est : **écrire dans le chat**, pas appeler l'outil de génération directement.
+### Triggering generation from the widget
+The real pattern on the widget side is: **write in the chat**, not call the generation tool directly.
 
 ```javascript
-const prompt = `Genere l'UI du ticket ${ticketId}`;
+const prompt = `Generate the UI for ticket ${ticketId}`;
 await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
 ```
 
-Ce pattern laisse le LLM faire le routage normal (`generateUIFromTicket`) et garde le widget dans un rôle d'orchestration légère.
+This pattern lets the LLM perform normal routing (`generateUIFromTicket`) and keeps the widget in a lightweight orchestration role.
 
-### `srcdoc` dans le board vs `doc.open()/write()/close()` dans la preview libre
-Les deux widgets n'injectent pas le HTML de la même façon.
+### `srcdoc` in the board vs `doc.open()/write()/close()` in the standalone preview
+The two widgets do not inject HTML in the same way.
 
-Dans `tickets-list-widget.html`, la preview embarquée met à jour une iframe déjà créée :
+In `tickets-list-widget.html`, the embedded preview updates an already created iframe:
 
 ```javascript
 const frame = document.getElementById('preview-frame');
@@ -241,7 +241,7 @@ const f = document.getElementById('preview-frame');
 if (f) { f.srcdoc = t.uiProposal; }
 ```
 
-Dans `ui-preview-widget.html`, le widget de preview libre réécrit complètement le document de l'iframe à chaque résultat d'outil :
+In `ui-preview-widget.html`, the standalone preview widget fully rewrites the iframe document on each tool result:
 
 ```javascript
 const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
@@ -250,5 +250,4 @@ doc.write(htmlCode);
 doc.close();
 ```
 
-Utiliser `srcdoc` est pratique pour une iframe déjà montée dans un widget qui reste maître de son état. Utiliser `doc.write(...)` correspond mieux au widget de preview qui reçoit directement `structuredContent.htmlCode` via `app.ontoolresult`.
-
+Using `srcdoc` is convenient for an iframe already mounted in a widget that stays in control of its state. Using `doc.write(...)` is a better match for the preview widget, which directly receives `structuredContent.htmlCode` via `app.ontoolresult`.

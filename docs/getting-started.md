@@ -1,182 +1,182 @@
-# Guide de démarrage - Copilot-Generate-UI-From-UserStory-and-manage-Tickets
+# Getting Started Guide - Copilot-Generate-UI-From-UserStory-and-manage-Tickets
 
-> **Pour qui ?** Ce guide est destiné à quelqu'un qui n'a jamais utilisé VS Code, Node.js, ou les outils Microsoft 365 pour développeurs. Il documente exactement ce qu'il faut installer et dans quel ordre pour reproduire ce projet. Chaque étape correspond à quelque chose que le premier développeur de ce projet a dû découvrir par lui-même.
-
----
-
-## Étape 0 - Prérequis compte
-
-Avant d'installer quoi que ce soit, vérifier que tu as :
-- ✅ Un **compte Microsoft 365** (E3, E5, Business Premium...)
-- ✅ La licence **Copilot 365** (nécessaire pour que l'agent soit accessible dans l'interface Copilot de Teams)
-- ✅ Un **compte GitHub** (gratuit)
-- ✅ Un **accès administrateur** sur ton poste (pour installer des logiciels)
-
-### ⚠️ Note sur le plan GitHub Copilot et les modèles IA pour le vibe coding
-
-GitHub Copilot existe en plusieurs plans. Le **plan gratuit** donne accès à des modèles moins performants, moins adaptés à un projet complexe comme celui-ci.
-
-**Pour travailler sérieusement, un plan payant est fortement recommandé :**
-
-| Plan | Modèles disponibles |
-|------|---------------------|
-| Free | GPT-4o, Claude 3.5 Sonnet (quota très limité) |
-| **Pro** | Claude Sonnet 4.6, GPT-4.1, GPT-5... quota étendu |
-| **Business** | Idem Pro + contrôles entreprise |
-
-> Ce projet a été développé avec un **plan payant** (Pro ou Business) et le modèle **Claude Sonnet 4.6**. La qualité du code généré, la compréhension du contexte et la capacité à suivre des instructions complexes dépendent directement du modèle utilisé.
-
-### Surveiller sa consommation de crédits
-
-Les plans payants ont un quota de **"premium requests"** mensuel. Les requêtes vers des modèles avancés (Claude Sonnet, GPT-5...) consomment ce quota plus vite.
-
-Pour voir ta consommation dans VS Code : cliquer sur l'icône Copilot en bas à droite → **Usage**
-
-![Copilot Premium Usage dans VS Code](screenshots/copilot-premium-usage.png)
-
-*Ici : 100% du quota "Included premium requests" utilisé - le système bascule sur l'"Overage Budget" (facturation au-delà du forfait). Le quota se renouvelle le 1er du mois.*
-
-> 💡 **Conseil :** activer un budget d'overage limité (ex: 10$) pour ne pas être bloqué en fin de mois sans mauvaise surprise. Configurable dans les paramètres GitHub → Billing.
+> **Who is this for?** This guide is intended for someone who has never used VS Code, Node.js, or Microsoft 365 developer tools. It documents exactly what you need to install, and in what order, to reproduce this project. Each step corresponds to something the first developer on this project had to figure out on their own.
 
 ---
 
-## Étape 1 - Installer Git
+## Step 0 - Account prerequisites
 
-Git est nécessaire pour cloner et gérer le code source.
+Before installing anything, make sure you have:
+- ✅ A **Microsoft 365 account** (E3, E5, Business Premium...)
+- ✅ A **Copilot 365** license (required for the agent to be accessible in the Teams Copilot interface)
+- ✅ A **GitHub account** (free)
+- ✅ **Administrator access** on your machine (to install software)
 
-1. Aller sur [git-scm.com/downloads](https://git-scm.com/downloads)
-2. Télécharger et installer Git pour Windows
-3. Lors de l'installation, laisser les options par défaut
-4. Vérifier l'installation : ouvrir un terminal et taper :
+### ⚠️ Note about the GitHub Copilot plan and AI models for vibe coding
+
+GitHub Copilot comes in several plans. The **free plan** gives access to less capable models, which are less suited to a complex project like this one.
+
+**To work seriously, a paid plan is strongly recommended:**
+
+| Plan | Available models |
+|------|------------------|
+| Free | GPT-4o, Claude 3.5 Sonnet (very limited quota) |
+| **Pro** | Claude Sonnet 4.6, GPT-4.1, GPT-5... extended quota |
+| **Business** | Same as Pro + enterprise controls |
+
+> This project was developed with a **paid plan** (Pro or Business) and the **Claude Sonnet 4.6** model. The quality of the generated code, understanding of the context, and ability to follow complex instructions depend directly on the model used.
+
+### Monitor your credit usage
+
+Paid plans include a monthly **"premium requests"** quota. Requests to advanced models (Claude Sonnet, GPT-5...) consume this quota faster.
+
+To see your usage in VS Code: click the Copilot icon in the bottom-right corner → **Usage**
+
+![Copilot Premium Usage in VS Code](screenshots/copilot-premium-usage.png)
+
+*Here: 100% of the "Included premium requests" quota has been used - the system switches to the "Overage Budget" (billing beyond the plan). The quota resets on the 1st of the month.*
+
+> 💡 **Tip:** enable a limited overage budget (for example: $10) so you do not get blocked at the end of the month unexpectedly. Configurable in GitHub settings → Billing.
+
+---
+
+## Step 1 - Install Git
+
+Git is required to clone and manage the source code.
+
+1. Go to [git-scm.com/downloads](https://git-scm.com/downloads)
+2. Download and install Git for Windows
+3. During installation, keep the default options
+4. Verify the installation: open a terminal and type:
    ```bash
    git --version
-   # Doit afficher : git version 2.x.x
+   # Should display: git version 2.x.x
    ```
 
 ---
 
-## Étape 2 - Installer Node.js
+## Step 2 - Install Node.js
 
-Node.js est le moteur qui exécute le MCP Server.
+Node.js is the runtime that runs the MCP Server.
 
-1. Aller sur [nodejs.org](https://nodejs.org)
-2. Télécharger la version **LTS** (Long Term Support) - actuellement Node.js 20 ou 22
-3. Installer avec les options par défaut
-4. Vérifier :
+1. Go to [nodejs.org](https://nodejs.org)
+2. Download the **LTS** (Long Term Support) version - currently Node.js 20 or 22
+3. Install with the default options
+4. Verify:
    ```bash
-   node --version   # v20.x.x ou v22.x.x
+   node --version   # v20.x.x or v22.x.x
    npm --version    # 10.x.x
    ```
 
-> ⚠️ Ne pas utiliser Node.js 16 ou inférieur - le `fetch` natif n'est disponible qu'à partir de Node.js 18.
+> ⚠️ Do not use Node.js 16 or lower - native `fetch` is only available starting with Node.js 18.
 
 ---
 
-## Étape 3 - Installer VS Code
+## Step 3 - Install VS Code
 
-VS Code est l'éditeur de code.
+VS Code is the code editor.
 
-1. Aller sur [code.visualstudio.com](https://code.visualstudio.com)
-2. Télécharger et installer
-3. Ouvrir VS Code
+1. Go to [code.visualstudio.com](https://code.visualstudio.com)
+2. Download and install it
+3. Open VS Code
 
 ---
 
-## Étape 4 - Installer les extensions VS Code
+## Step 4 - Install VS Code extensions
 
-Les extensions sont installables depuis le panneau Extensions (icône carré dans la barre de gauche, ou `Ctrl+Shift+X`).
+Extensions can be installed from the Extensions panel (square icon in the left sidebar, or `Ctrl+Shift+X`).
 
-### Extension obligatoire 1 : M365 Agents Toolkit
+### Required extension 1: M365 Agents Toolkit
 
-C'est l'extension qui gère le devtunnel, le provisioning de l'agent dans M365, et le démarrage en F5.
+This is the extension that handles the devtunnel, provisioning the agent in M365, and launching with F5.
 
-1. Dans VS Code, ouvrir Extensions (`Ctrl+Shift+X`)
-2. Chercher : **"Teams Toolkit"** ou **"M365 Agents Toolkit"**
-3. Installer l'extension de Microsoft (éditeur : Microsoft)
-4. Un nouveau panneau apparaît dans la barre de gauche (icône Teams)
+1. In VS Code, open Extensions (`Ctrl+Shift+X`)
+2. Search for: **"Teams Toolkit"** or **"M365 Agents Toolkit"**
+3. Install the Microsoft extension (publisher: Microsoft)
+4. A new panel appears in the left sidebar (Teams icon)
 
-> 💡 Le nom a changé : anciennement "Teams Toolkit", maintenant "M365 Agents Toolkit". Les deux fonctionnent pareil.
+> 💡 The name changed: formerly "Teams Toolkit", now "M365 Agents Toolkit". Both work the same way.
 
-### Extension obligatoire 2 : GitHub Copilot
+### Required extension 2: GitHub Copilot
 
-GitHub Copilot est l'assistant IA intégré dans VS Code.
+GitHub Copilot is the AI assistant built into VS Code.
 
-1. Chercher : **"GitHub Copilot"**
-2. Installer l'extension de GitHub
-3. Se connecter avec ton compte GitHub quand demandé
+1. Search for: **"GitHub Copilot"**
+2. Install the GitHub extension
+3. Sign in with your GitHub account when prompted
 
-### Extension utile : GitHub Copilot dans le terminal
+### Useful extension: GitHub Copilot in the terminal
 
-**C'est ce qui permet d'avoir une conversation IA directement dans le terminal VS Code - comme ce projet a été développé.**
+**This is what lets you have an AI conversation directly in the VS Code terminal - the same way this project was developed.**
 
-1. Ouvrir le terminal intégré VS Code : `` Ctrl+` `` (ou `Ctrl+ù` selon le clavier)
-2. Installer la GitHub CLI :
+1. Open the integrated VS Code terminal: `` Ctrl+` `` (or `Ctrl+ù` depending on the keyboard)
+2. Install the GitHub CLI:
    ```bash
    winget install GitHub.cli
    ```
-   Ou depuis [cli.github.com](https://cli.github.com)
-3. Se connecter :
+   Or from [cli.github.com](https://cli.github.com)
+3. Sign in:
    ```bash
    gh auth login
    ```
-   Suivre les instructions (navigateur s'ouvre pour authentification)
-4. Démarrer une conversation Copilot dans le terminal :
-   - Via la palette de commandes VS Code : `Ctrl+Shift+P` → **"GitHub Copilot: Open Agent"** (ou "Open Copilot in Terminal")
-   - Ou directement depuis le panneau Copilot de VS Code (icône chat dans la barre de gauche)
+   Follow the instructions (a browser opens for authentication)
+4. Start a Copilot conversation in the terminal:
+   - Via the VS Code Command Palette: `Ctrl+Shift+P` → **"GitHub Copilot: Open Agent"** (or "Open Copilot in Terminal")
+   - Or directly from the VS Code Copilot panel (chat icon in the left sidebar)
 
-> 💡 Ce projet entier a été développé en dictant des demandes en français dans ce terminal, sans écrire de code manuellement.
+> 💡 This entire project was developed by dictating requests in French in this terminal, without writing code manually.
 
 ---
 
-## Étape 4b - Lancer Copilot dans le terminal (détail)
+## Step 4b - Launch Copilot in the terminal (details)
 
-Une fois la GitHub CLI installée et connectée, voici comment démarrer une session Copilot dans le terminal VS Code.
+Once GitHub CLI is installed and connected, here is how to start a Copilot session in the VS Code terminal.
 
-### 1. Ouvrir un nouveau terminal
+### 1. Open a new terminal
 
-Dans VS Code : menu **Terminal** → **New Terminal** (ou `Ctrl+Shift+ù`)
+In VS Code: **Terminal** menu → **New Terminal** (or `Ctrl+Shift+ù`)
 
-![Menu Terminal → New Terminal](screenshots/vscode-terminal-menu.png)
+![Terminal menu → New Terminal](screenshots/vscode-terminal-menu.png)
 
-### 2. Taper la commande `Copilot`
+### 2. Type the `Copilot` command
 
-Dans le terminal qui s'ouvre (PowerShell), taper :
+In the terminal that opens (PowerShell), type:
 
 ```
 Copilot
 ```
 
-![Commande Copilot dans le terminal](screenshots/vscode-terminal-copilot-cmd.png)
+![Copilot command in the terminal](screenshots/vscode-terminal-copilot-cmd.png)
 
-### 3. Copilot démarre
+### 3. Copilot starts
 
-GitHub Copilot CLI se lance avec son interface dans le terminal. Le message de bienvenue indique la version et le nombre de skills/plugins chargés.
+GitHub Copilot CLI launches with its interface in the terminal. The welcome message shows the version and the number of loaded skills/plugins.
 
-![GitHub Copilot démarré dans le terminal](screenshots/copilot-terminal-started.png)
+![GitHub Copilot started in the terminal](screenshots/copilot-terminal-started.png)
 
-Le message `Environment loaded: X hooks, X skills, X MCP server, X plugins, X agents, Visual Studio Code connected` confirme que tout est bien chargé.
+The message `Environment loaded: X hooks, X skills, X MCP server, X plugins, X agents, Visual Studio Code connected` confirms that everything is loaded correctly.
 
-### 4. Vérifier les skills installés
+### 4. Check the installed skills
 
-Pour voir la liste des skills disponibles, taper `/skills` puis Entrée :
+To see the list of available skills, type `/skills` then press Enter:
 
-![Commande /skills dans Copilot](screenshots/copilot-terminal-skills.png)
+![`/skills` command in Copilot](screenshots/copilot-terminal-skills.png)
 
-La liste complète des skills s'affiche avec leur statut (activé/désactivé) :
+The full list of skills is displayed with their status (enabled/disabled):
 
-![Liste des skills Copilot (36/36)](screenshots/copilot-terminal-skills-list.png)
+![Copilot skills list (36/36)](screenshots/copilot-terminal-skills-list.png)
 
-> 💡 Les skills sont les capacités spécialisées de Copilot. Pour ce projet, les guides et références utiles doivent être rangés dans `docs/skills/`.
+> 💡 Skills are Copilot's specialized capabilities. For this project, useful guides and references should be stored in `docs/skills/`.
 
-### 5. Quitter Copilot
+### 5. Exit Copilot
 
-Appuyer sur **Échap** pour quitter l'interface Copilot et revenir au terminal PowerShell normal.
+Press **Escape** to leave the Copilot interface and return to the normal PowerShell terminal.
 
 ---
 
-## Étape 5 - Cloner le projet (optionnel)
+## Step 5 - Clone the project (optional)
 
-> Si tu veux partir de ce projet comme base, clone-le. Si tu préfères démarrer un projet vierge, passe directement à l'étape suivante et utilise les guides de référence dans `docs/skills/`.
+> If you want to use this project as a starting point, clone it. If you prefer to start with a blank project, go directly to the next step and use the reference guides in `docs/skills/`.
 
 ```bash
 git clone https://github.com/romain-gerard-exp/Copilot-Generate-UI-From-UserStory-and-manage-Tickets.git
@@ -185,30 +185,30 @@ cd Copilot-Generate-UI-From-UserStory-and-manage-Tickets
 
 ---
 
-## Étape 6 - Créer le fichier de configuration local
+## Step 6 - Create the local configuration file
 
-Le fichier `mcp-server/.env` n'est pas inclus dans le repo (gitignored). Il faut le créer à partir du modèle fourni :
+The `mcp-server/.env` file is not included in the repo (gitignored). You need to create it from the provided template:
 
 ```bash
 cd mcp-server
 copy .env.sample .env
 ```
 
-Puis ouvrir `mcp-server/.env` et laisser simplement :
+Then open `mcp-server/.env` and leave only:
 
 ```env
 PORT=3978
 ```
 
-> ✅ **Aucune autre variable n'est nécessaire** pour ce projet.
+> ✅ **No other variable is required** for this project.
 >
-> ✅ **Aucune clé API** n'est à créer.
+> ✅ **No API key** needs to be created.
 >
-> ✅ **Aucun paramétrage Dataverse** n'est nécessaire.
+> ✅ **No Dataverse configuration** is required.
 
 ---
 
-## Étape 7 - Installer les dépendances Node.js
+## Step 7 - Install Node.js dependencies
 
 ```bash
 npm install
@@ -216,218 +216,218 @@ npm install
 
 ---
 
-## Étape 8 - Se connecter à M365 dans VS Code
+## Step 8 - Sign in to M365 in VS Code
 
-1. Dans VS Code, cliquer sur l'icône **M365 Agents Toolkit** dans la barre de gauche
-2. Cliquer sur **"Sign in to Microsoft 365"** dans la section **ACCOUNTS**
-3. Se connecter avec le compte qui a la licence Copilot 365
-4. Vérifier dans la section **ENVIRONMENT** que l'environnement `dev` ne montre plus le warning (le toolkit affiche "Sign in with your correct Azure account" mais il s'agit bien du compte Microsoft 365 professionnel, le même que Teams)
+1. In VS Code, click the **M365 Agents Toolkit** icon in the left sidebar
+2. Click **"Sign in to Microsoft 365"** in the **ACCOUNTS** section
+3. Sign in with the account that has the Copilot 365 license
+4. Check in the **ENVIRONMENT** section that the `dev` environment no longer shows the warning (the toolkit displays "Sign in with your correct Azure account" but this is indeed the professional Microsoft 365 account, the same one as Teams)
 
-![M365 Agents Toolkit dans VS Code](screenshots/vscode-m365-toolkit.png)
+![M365 Agents Toolkit in VS Code](screenshots/vscode-m365-toolkit.png)
 
-*Le panneau M365 Agents Toolkit montre les sections ACCOUNTS, ENVIRONMENT, DEVELOPMENT et LIFECYCLE. Si le warning "Sign in with your correct Azure account" apparaît sous l'environnement, cliquer dessus et se connecter avec le compte Microsoft 365 professionnel (pas besoin d'un abonnement Azure, c'est le même compte que celui utilisé pour Teams).*
-
----
-
-## Étape 9 - Lancer l'agent en debug
-
-### Ouvrir le panneau Run and Debug
-
-Dans VS Code, deux façons d'accéder au debug :
-- **Raccourci clavier :** `F5` directement (lance immédiatement le dernier profil sélectionné)
-- **Panneau Run and Debug :** cliquer sur l'icône dans la barre de gauche (icône triangle avec un insecte), puis cliquer sur le bouton **▶ vert** en haut
-
-![Panneau Run and Debug VS Code](screenshots/vscode-run-debug.png)
-
-*Le bouton ▶ vert en haut du panneau "RUN AND DEBUG" lance le debug. Le menu déroulant à côté ("Debug in...") permet de choisir le profil.*
-
-### Sélectionner le bon profil
-
-Si plusieurs profils apparaissent dans le menu déroulant, sélectionner **"Debug in Copilot (Edge)"**.
-
-> 💡 La première fois, si la liste est vide ou que F5 ne fait rien, vérifier que l'extension **M365 Agents Toolkit** est bien installée - c'est elle qui ajoute le profil de debug.
-
-### Ce qui se passe après F5
-
-VS Code va automatiquement :
-1. Créer un **devtunnel** (tunnel HTTPS public vers ton localhost)
-2. **Builder** le MCP server TypeScript (`npm run build`)
-3. **Uploader** l'app dans ton tenant M365
-4. Ouvrir **Edge** sur [m365.cloud.microsoft](https://m365.cloud.microsoft)
-
-Dans Edge, aller dans **Copilot** → l'agent **"UI Generator"** doit apparaître dans la liste.
-
-> ⚠️ La première fois, M365 peut mettre quelques minutes à reconnaître l'agent. Si l'agent n'apparaît pas après 2-3 minutes, relancer F5.
-
-> ⚠️ Si Edge s'ouvre mais que tu vois une erreur de connexion au MCP server, vérifier que le terminal "MCP Server" dans VS Code ne montre pas d'erreur de démarrage.
-
-### Premiers prompts de test
-
-Une fois l'agent lancé, tu peux commencer avec :
-- `Montre-moi les tickets`
-- `Génère un formulaire de contact`
-- `Crée une interface pour le ticket US-001`
+*The M365 Agents Toolkit panel shows the ACCOUNTS, ENVIRONMENT, DEVELOPMENT, and LIFECYCLE sections. If the warning "Sign in with your correct Azure account" appears under the environment, click it and sign in with the professional Microsoft 365 account (no Azure subscription is required, it is the same account used for Teams).*
 
 ---
 
-## Étape 10 - Arrêter le debug proprement (entre deux tests)
+## Step 9 - Run the agent in debug
 
-Quand on arrête une session de debug et qu'on veut en relancer une propre, il faut faire un peu de ménage - sinon les serveurs locaux continuent de tourner en arrière-plan et le prochain F5 peut avoir des conflits de port.
+### Open the Run and Debug panel
 
-### 1. Fermer le navigateur Edge ouvert par le debug
+In VS Code, there are two ways to access debugging:
+- **Keyboard shortcut:** `F5` directly (immediately launches the last selected profile)
+- **Run and Debug panel:** click the icon in the left sidebar (triangle with a bug), then click the **green ▶** button at the top
 
-Fermer simplement la fenêtre Edge qui s'est ouverte sur M365 Copilot.
+![VS Code Run and Debug panel](screenshots/vscode-run-debug.png)
 
-### 2. Arrêter le debug dans VS Code
+*The green ▶ button at the top of the "RUN AND DEBUG" panel launches debugging. The dropdown next to it ("Debug in...") lets you choose the profile.*
 
-Cliquer sur le carré rouge ■ dans la barre de debug en haut de VS Code (ou `Shift+F5`).
+### Select the correct profile
 
-### 3. Kill les terminaux de serveur qui tournent encore
+If multiple profiles appear in the dropdown, select **"Debug in Copilot (Edge)"**.
 
-Après l'arrêt du debug, plusieurs terminaux restent souvent ouverts et actifs (MCP server, devtunnel...). Il faut les tuer manuellement.
+> 💡 The first time, if the list is empty or F5 does nothing, check that the **M365 Agents Toolkit** extension is installed - it is the one that adds the debug profile.
 
-**Méthode :** Clic droit sur le terminal concerné → **Kill Terminal**
+### What happens after F5
 
-![Kill Terminal dans VS Code](screenshots/vscode-kill-terminal.png)
+VS Code will automatically:
+1. Create a **devtunnel** (public HTTPS tunnel to your localhost)
+2. **Build** the TypeScript MCP server (`npm run build`)
+3. **Upload** the app to your M365 tenant
+4. Open **Edge** at [m365.cloud.microsoft](https://m365.cloud.microsoft)
 
-*Sur cette capture : le terminal "Start backend Task" fait tourner le serveur MCP (`npm start`, `node dist/index.js`). Un clic droit → "Kill Terminal" l'arrête proprement.*
+In Edge, go to **Copilot** → the **"UI Generator"** agent should appear in the list.
 
-> 💡 Les terminaux créés par le toolkit ont des noms reconnaissables : "Start local tunnel", "Start backend", "Build project", etc. Les identifier et les tuer tous avant de relancer F5.
+> ⚠️ The first time, M365 may take a few minutes to recognize the agent. If the agent does not appear after 2-3 minutes, run F5 again.
 
-> ⚠️ Si tu ne kills pas les terminaux et que tu relances F5, tu peux avoir une erreur `EADDRINUSE: address already in use` - le port 3978 (ou autre) est déjà occupé par l'ancienne instance du serveur.
+> ⚠️ If Edge opens but you see a connection error to the MCP server, check that the "MCP Server" terminal in VS Code does not show a startup error.
+
+### First test prompts
+
+Once the agent is running, you can start with:
+- `Show me the tickets`
+- `Generate a contact form`
+- `Create an interface for ticket US-001`
 
 ---
 
-## Récapitulatif des prérequis
+## Step 10 - Stop debugging cleanly (between tests)
 
-| Outil / élément | Version minimale / valeur | Lien / remarque |
-|-----------------|---------------------------|-----------------|
+When you stop a debug session and want to start a clean one again, you need to do a little cleanup - otherwise the local servers keep running in the background and the next F5 may run into port conflicts.
+
+### 1. Close the Edge browser opened by debugging
+
+Simply close the Edge window that opened on M365 Copilot.
+
+### 2. Stop debugging in VS Code
+
+Click the red square ■ in the debug bar at the top of VS Code (or `Shift+F5`).
+
+### 3. Kill the server terminals that are still running
+
+After debugging stops, several terminals often remain open and active (MCP server, devtunnel...). You must kill them manually.
+
+**Method:** Right-click the relevant terminal → **Kill Terminal**
+
+![Kill Terminal in VS Code](screenshots/vscode-kill-terminal.png)
+
+*In this screenshot: the "Start backend Task" terminal is running the MCP server (`npm start`, `node dist/index.js`). A right-click → "Kill Terminal" stops it cleanly.*
+
+> 💡 The terminals created by the toolkit have recognizable names: "Start local tunnel", "Start backend", "Build project", etc. Identify them and kill them all before running F5 again.
+
+> ⚠️ If you do not kill the terminals and run F5 again, you may get an `EADDRINUSE: address already in use` error - port 3978 (or another one) is already occupied by the old server instance.
+
+---
+
+## Summary of prerequisites
+
+| Tool / item | Minimum version / value | Link / note |
+|-------------|-------------------------|-------------|
 | Git | 2.x | [git-scm.com](https://git-scm.com/downloads) |
-| Node.js | 18 LTS (recommandé : 20 ou 22) | [nodejs.org](https://nodejs.org) |
-| VS Code | dernière version | [code.visualstudio.com](https://code.visualstudio.com) |
-| GitHub CLI | dernière version | [cli.github.com](https://cli.github.com) |
-| Extension M365 Agents Toolkit | dernière version | via VS Code Extensions |
-| Extension GitHub Copilot | dernière version | via VS Code Extensions |
-| Compte M365 avec licence Copilot | - | via ton organisation |
-| Fichier `.env` | `PORT=3978` | à créer dans `mcp-server/.env` |
+| Node.js | 18 LTS (recommended: 20 or 22) | [nodejs.org](https://nodejs.org) |
+| VS Code | latest version | [code.visualstudio.com](https://code.visualstudio.com) |
+| GitHub CLI | latest version | [cli.github.com](https://cli.github.com) |
+| M365 Agents Toolkit extension | latest version | via VS Code Extensions |
+| GitHub Copilot extension | latest version | via VS Code Extensions |
+| M365 account with Copilot license | - | through your organization |
+| `.env` file | `PORT=3978` | to be created in `mcp-server/.env` |
 
-> ✅ Pas de clé API.
+> ✅ No API key.
 >
-> ✅ Pas de configuration Dataverse.
+> ✅ No Dataverse configuration.
 
 ---
 
-## Démarrer ton propre agent - les prompts de départ
+## Start your own agent - starter prompts
 
-> Une fois l'environnement en place, voici comment démarrer un nouveau projet d'agent similaire en donnant les bons prompts à GitHub Copilot dans le terminal. La clé : **toujours donner le contexte et pointer vers les guides de référence dans `docs/skills/`** - Copilot est bien plus efficace quand il sait exactement où chercher.
+> Once the environment is in place, here is how to start a similar new agent project by giving GitHub Copilot the right prompts in the terminal. The key: **always provide the context and point to the reference guides in `docs/skills/`** - Copilot is much more effective when it knows exactly where to look.
 
-Les prompts ci-dessous sont des modèles à adapter à ton cas. Ils sont écrits pour être copiés-collés dans le terminal Copilot (`Copilot` dans le terminal VS Code).
-
----
-
-### Phase 1 - Créer l'agent de base avec un MCP Server
-
-**Quand ?** En partant d'un projet vide ou d'un template M365 Agents Toolkit cloné.
-
-**Prompt type :**
-
-```
-Je veux créer un agent déclaratif M365 Copilot connecté à un MCP Server Node.js/Express/TypeScript.
-L'agent s'appelle "UI Generator" et doit permettre de générer des interfaces HTML/CSS/JS à partir de user stories et de tickets.
-
-Pour référence, lis les guides pertinents dans docs/skills/.
-
-L'agent doit avoir :
-- Un manifest.json et un declarative agent corrects
-- Un ai-plugin.json branché sur le MCP Server
-- Un serveur local simple avec PORT=3978
-- Des outils pour lister des tickets et générer une interface à partir d'un ticket
-
-Le projet est déjà cloné localement. Commence par analyser la structure existante.
-```
+The prompts below are templates to adapt to your use case. They are written to be copied and pasted into the Copilot terminal (`Copilot` in the VS Code terminal).
 
 ---
 
-### Phase 2 - Générer une interface depuis une user story
+### Phase 1 - Create the base agent with an MCP Server
 
-**Quand ?** Quand tu veux transformer un besoin métier ou un ticket en maquette fonctionnelle.
+**When?** Starting from an empty project or a cloned M365 Agents Toolkit template.
 
-**Prompt type :**
+**Prompt template:**
 
 ```
-Je veux que l'agent génère une interface à partir d'une user story.
+I want to create a declarative M365 Copilot agent connected to a Node.js/Express/TypeScript MCP Server.
+The agent is called "UI Generator" and must make it possible to generate HTML/CSS/JS interfaces from user stories and tickets.
 
-Pour référence, lis les guides pertinents dans docs/skills/.
+For reference, read the relevant guides in docs/skills/.
 
-Voici le ticket :
-- ID : US-001
-- Titre : [TITRE]
-- Description : [DESCRIPTION]
-- Critères d'acceptation :
-  - [CRITÈRE 1]
-  - [CRITÈRE 2]
+The agent must have:
+- A correct manifest.json and declarative agent
+- An ai-plugin.json connected to the MCP Server
+- A simple local server with PORT=3978
+- Tools to list tickets and generate an interface from a ticket
 
-Je veux une interface HTML/CSS/JS complète, lisible, responsive, avec des données d'exemple si nécessaire.
-Commence par proposer une première version exploitable.
+The project is already cloned locally. Start by analyzing the existing structure.
 ```
 
 ---
 
-### Phase 3 - Ajouter ou améliorer le rendu visuel d'un tool
+### Phase 2 - Generate an interface from a user story
 
-**Quand ?** Quand un tool retourne des données qui méritent un affichage visuel (liste de tickets, aperçu d'interface, tableau de suivi...).
+**When?** When you want to turn a business need or a ticket into a functional mockup.
 
-**Prompt type :**
+**Prompt template:**
 
 ```
-Je veux ajouter ou améliorer un widget HTML pour le tool [NOM_DU_TOOL].
+I want the agent to generate an interface from a user story.
 
-Pour référence, lis les guides pertinents dans docs/skills/.
+For reference, read the relevant guides in docs/skills/.
 
-Le tool retourne ce format de données :
-[COLLER ICI UN EXEMPLE JSON DE LA RÉPONSE]
+Here is the ticket:
+- ID: US-001
+- Title: [TITLE]
+- Description: [DESCRIPTION]
+- Acceptance criteria:
+  - [CRITERION 1]
+  - [CRITERION 2]
 
-Je veux que le widget affiche :
-- une liste de tickets exploitable visuellement
-- ou un aperçu de l'interface générée
-- ou un détail de ticket avec les actions possibles
-
-Utilise un rendu propre, gère le thème clair/sombre et garde le widget lisible dans Copilot.
+I want a complete, readable, responsive HTML/CSS/JS interface, with sample data if necessary.
+Start by proposing a first usable version.
 ```
 
 ---
 
-### Phase 4 - Itérer rapidement avec des prompts métier
+### Phase 3 - Add or improve the visual rendering of a tool
 
-**Quand ?** Une fois l'agent lancé en F5 et disponible dans Copilot.
+**When?** When a tool returns data that deserves a visual display (ticket list, interface preview, tracking dashboard...).
 
-**Prompts utiles pour ce projet :**
-
-```
-Montre-moi les tickets
-```
+**Prompt template:**
 
 ```
-Génère un formulaire de contact
-```
+I want to add or improve an HTML widget for the [TOOL_NAME] tool.
 
-```
-Crée une interface pour le ticket US-001
-```
+For reference, read the relevant guides in docs/skills/.
 
-> 💡 Ensuite, continue simplement la conversation : "ajoute une barre de recherche", "mets le formulaire sur deux colonnes", "transforme cette interface en dashboard", etc.
+The tool returns this data format:
+[PASTE A JSON RESPONSE EXAMPLE HERE]
+
+I want the widget to display:
+- a visually usable list of tickets
+- or a preview of the generated interface
+- or a ticket detail view with available actions
+
+Use a clean rendering, handle the light/dark theme, and keep the widget readable in Copilot.
+```
 
 ---
 
-### Conseils généraux pour bien prompter Copilot
+### Phase 4 - Iterate quickly with business prompts
 
-**✅ Toujours faire :**
-- Pointer vers le guide pertinent dans `docs/skills/` dans le prompt
-- Donner un exemple réel de ticket, user story ou JSON retourné par un tool
-- Décrire le résultat attendu, pas seulement la technique
-- Vérifier le résultat dans le navigateur avant de passer à l'étape suivante
+**When?** Once the agent is launched with F5 and available in Copilot.
 
-**❌ Éviter :**
-- Demander plusieurs grosses fonctionnalités en un seul prompt
-- Oublier de préciser le contexte du projet déjà existant
-- Mélanger setup technique, logique métier et design visuel dans la même demande
+**Useful prompts for this project:**
+
+```
+Show me the tickets
+```
+
+```
+Generate a contact form
+```
+
+```
+Create an interface for ticket US-001
+```
+
+> 💡 Then simply continue the conversation: "add a search bar", "put the form in two columns", "turn this interface into a dashboard", etc.
+
+---
+
+### General tips for prompting Copilot effectively
+
+**✅ Always do:**
+- Point to the relevant guide in `docs/skills/` in the prompt
+- Provide a real example of a ticket, user story, or JSON returned by a tool
+- Describe the expected result, not just the technique
+- Check the result in the browser before moving on to the next step
+
+**❌ Avoid:**
+- Asking for several large features in a single prompt
+- Forgetting to specify the context of the existing project
+- Mixing technical setup, business logic, and visual design in the same request

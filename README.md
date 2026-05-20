@@ -1,95 +1,95 @@
-# Générateur d'interfaces UI et gestion de backlog pour M365 Copilot
+# UI Generator and Backlog Management for M365 Copilot
 
-> Agent déclaratif Microsoft 365 Copilot capable de **générer des interfaces HTML/CSS/JS à la volée**, de **gérer un backlog de tickets UI**, puis de **combiner les deux** pour créer, visualiser, itérer et sauvegarder des propositions d'interface directement dans le flux de conversation.
+> Microsoft 365 Copilot declarative agent capable of **generating HTML/CSS/JS interfaces on the fly**, **managing a UI ticket backlog**, and then **combining both** to create, visualize, iterate on, and save interface proposals directly in the conversation flow.
 
-### 🎨 Génération d'une landing page Hero depuis un ticket
+### 🎨 Generating a Hero landing page from a ticket
 
-![Landing page Hero générée et ticket board](docs/screenshots/hero-landing-page.png)
+![Generated Hero landing page and ticket board](docs/screenshots/hero-landing-page.png)
 
-### 📋 Formulaire applicatif complexe généré en une phrase
+### 📋 Complex application form generated in one sentence
 
-> *« Je voudrais créer une interface de demande de remboursement de frais professionnels assez détaillé, avec un thème noir, un titre en orange, du texte en blanc et un bandeau en haut pour afficher le nom du formulaire. »*
+> *“I would like to create a fairly detailed professional expense reimbursement request interface, with a black theme, an orange title, white text, and a banner at the top to display the form name.”*
 
-![Formulaire de remboursement de frais professionnels](docs/screenshots/formulaire-remboursement.png)
+![Professional expense reimbursement form](docs/screenshots/formulaire-remboursement.png)
 
-### 💻 Vue code — inspectez et copiez le HTML/CSS/JS généré
+### 💻 Code view — inspect and copy the generated HTML/CSS/JS
 
-![Vue code du composant généré](docs/screenshots/code-view.png)
+![Code view of the generated component](docs/screenshots/code-view.png)
 
-### 🗂️ Ticket Board plein écran — gérez votre backlog complet
+### 🗂️ Full-screen Ticket Board — manage your entire backlog
 
-![Gestionnaire de tickets en plein écran](docs/screenshots/ticket-board-fullscreen.png)
+![Full-screen ticket manager](docs/screenshots/ticket-board-fullscreen.png)
 
-> 🚀 **Première fois ?** Consulte le [Guide de démarrage](docs/getting-started.md) — de l'installation de VS Code jusqu'au premier F5.
+> 🚀 **First time?** Check the [Getting Started Guide](docs/getting-started.md) — from installing VS Code to your first F5.
 
 ---
 
-## Sommaire
+## Table of contents
 
-- [Vue d'ensemble](#vue-densemble)
-- [Cas d'usage couverts](#cas-dusage-couverts)
-- [Fonctionnalités clés](#fonctionnalités-clés)
+- [Overview](#overview)
+- [Supported use cases](#supported-use-cases)
+- [Key features](#key-features)
 - [Architecture](#architecture)
-- [Stack technique](#stack-technique)
-- [Outils MCP disponibles](#outils-mcp-disponibles)
-- [Widgets HTML](#widgets-html)
-- [Structure du projet](#structure-du-projet)
-- [Prérequis](#prérequis)
+- [Technical stack](#technical-stack)
+- [Available MCP tools](#available-mcp-tools)
+- [HTML Widgets](#html-widgets)
+- [Project structure](#project-structure)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [🚀 Guide de démarrage](#-guide-de-démarrage)
-- [Flux d'utilisation](#flux-dutilisation)
-- [Données et persistance](#données-et-persistance)
-- [Références des skills](#références-des-skills)
+- [🚀 Getting Started](#-getting-started)
+- [Usage flow](#usage-flow)
+- [Data and persistence](#data-and-persistence)
+- [Skill references](#skill-references)
 - [Version](#version)
-- [Template de référence](#template-de-référence)
-- [Références documentaires](#références-documentaires)
+- [Reference template](#reference-template)
+- [Documentation references](#documentation-references)
 
 ---
 
-## Vue d'ensemble
+## Overview
 
-Ce projet est un **agent déclaratif M365 Copilot** connecté à un **MCP Server Node.js/TypeScript**. Il permet de transformer une demande en langage naturel en interface HTML/CSS/JS exploitable, tout en fournissant une gestion simple d'un backlog de tickets UI.
+This project is an **M365 Copilot declarative agent** connected to a **Node.js/TypeScript MCP Server**. It turns a natural-language request into a usable HTML/CSS/JS interface while also providing simple management of a UI ticket backlog.
 
-L'objectif est de couvrir un cycle complet :
+The goal is to cover a complete cycle:
 
-1. décrire une interface,
-2. générer un prototype,
-3. le prévisualiser dans un widget,
-4. l'itérer par chat,
-5. le rattacher à un ticket ou l'enregistrer pour la suite.
-
----
-
-## Cas d'usage couverts
-
-### Cas 1 — Générer une UI à partir d'un ticket existant
-
-L'utilisateur sélectionne un ticket dans le backlog, demande à l'agent de produire une proposition d'interface, puis visualise le résultat dans le panneau latéral. Il peut ensuite affiner l'interface par conversation et conserver la proposition associée au ticket.
-
-### Cas 2 — Créer un ticket puis générer sa UI
-
-L'utilisateur décrit un besoin, l'agent crée un ticket avec les métadonnées utiles (statut, priorité, assignation), puis génère l'interface correspondante à partir de cette nouvelle entrée du backlog.
-
-### Cas 3 — Générer une UI libre sans ticket
-
-L'utilisateur décrit directement une interface sans passer par le backlog. L'agent génère alors une UI autonome, permet les itérations successives, puis propose éventuellement de sauvegarder le résultat dans un ticket existant ou nouvellement créé.
+1. describe an interface,
+2. generate a prototype,
+3. preview it in a widget,
+4. iterate on it through chat,
+5. attach it to a ticket or save it for later.
 
 ---
 
-## Fonctionnalités clés
+## Supported use cases
 
-Ce projet est un **agent déclaratif Microsoft 365 Copilot** (Declarative Copilot Agent), connecté à un **MCP Server** via le protocole **Model Context Protocol**, avec des **widgets interactifs MCP Apps** (Embedded Apps) affichés directement dans le chat M365 Copilot.
+### Use case 1 — Generate a UI from an existing ticket
 
-- **Agent déclaratif M365 Copilot** — manifest v1.26, agent v1.6, plugin v2.4 avec `RemoteMCPServer`
-- **MCP Server Node.js/TypeScript/Express** — 10 outils exposés via Streamable HTTP
-- **Widgets MCP Apps** — 2 widgets HTML interactifs intégrés au chat (backlog + preview)
-- Génération d'interfaces **HTML/CSS/JS** à partir d'une description en langage naturel
-- Mise à jour incrémentale d'une UI existante via le chat
-- Gestion d'un backlog de tickets UI avec **statut**, **priorité** et **assigné**
-- Prévisualisation immédiate en **mode plein écran** avec rafraîchissement automatique en temps réel
-- Sauvegarde d'une proposition d'interface sur un ticket existant ou nouveau
-- Réinitialisation rapide des données de démonstration
-- Stockage simple sur fichiers JSON, **sans base de données**
+The user selects a ticket from the backlog, asks the agent to produce an interface proposal, then views the result in the side panel. They can then refine the interface through conversation and keep the proposal associated with the ticket.
+
+### Use case 2 — Create a ticket, then generate its UI
+
+The user describes a need, the agent creates a ticket with the useful metadata (status, priority, assignee), then generates the corresponding interface from this new backlog entry.
+
+### Use case 3 — Generate a freeform UI without a ticket
+
+The user directly describes an interface without going through the backlog. The agent then generates a standalone UI, enables successive iterations, and may later suggest saving the result to an existing or newly created ticket.
+
+---
+
+## Key features
+
+This project is a **Microsoft 365 Copilot declarative agent** (Declarative Copilot Agent), connected to an **MCP Server** via the **Model Context Protocol**, with interactive **MCP Apps widgets** (Embedded Apps) displayed directly in M365 Copilot chat.
+
+- **M365 Copilot declarative agent** — manifest v1.26, agent v1.6, plugin v2.4 with `RemoteMCPServer`
+- **Node.js/TypeScript/Express MCP Server** — 10 tools exposed via Streamable HTTP
+- **MCP Apps widgets** — 2 interactive HTML widgets embedded in chat (backlog + preview)
+- **HTML/CSS/JS** interface generation from a natural-language description
+- Incremental updates to an existing UI through chat
+- UI ticket backlog management with **status**, **priority**, and **assignee**
+- Immediate preview in **full-screen mode** with automatic real-time refresh
+- Saving an interface proposal to an existing or new ticket
+- Quick reset of demo data
+- Simple storage in JSON files, **without a database**
 
 ---
 
@@ -109,7 +109,7 @@ Ce projet est un **agent déclaratif Microsoft 365 Copilot** (Declarative Copilo
 │         createTicket, updateTicket, resetTickets      │
 │         viewTicketUI                                  │
 │                                                       │
-│  Widgets HTML (MCP Apps)                              │
+│  HTML Widgets (MCP Apps)                              │
 │    · tickets-list-widget (backlog + preview)          │
 │    · ui-preview-widget (standalone preview)           │
 └───────────────────────────────────────────────────────┘
@@ -122,106 +122,106 @@ Ce projet est un **agent déclaratif Microsoft 365 Copilot** (Declarative Copilo
 
 ---
 
-## Stack technique
+## Technical stack
 
-| Composant | Technologie |
+| Component | Technology |
 |-----------|-------------|
 | Agent | M365 Declarative Copilot |
-| Manifeste | `manifest.json` v1.26 |
-| Schéma d'agent déclaratif | v1.6 |
-| Serveur MCP | Node.js + TypeScript + Express |
+| Manifest | `manifest.json` v1.26 |
+| Declarative agent schema | v1.6 |
+| MCP Server | Node.js + TypeScript + Express |
 | Transport | Streamable HTTP |
-| Widgets interactifs | `@modelcontextprotocol/ext-apps` |
-| UI / thème | Fluent UI Web Components |
-| Développement local | M365 Agents Toolkit, devtunnel, F5 |
-| Persistance | Fichiers JSON (`tickets.json`) |
+| Interactive widgets | `@modelcontextprotocol/ext-apps` |
+| UI / theme | Fluent UI Web Components |
+| Local development | M365 Agents Toolkit, devtunnel, F5 |
+| Persistence | JSON files (`tickets.json`) |
 
 ---
 
-## Outils MCP disponibles
+## Available MCP tools
 
-Le serveur expose **10 outils MCP**.
+The server exposes **10 MCP tools**.
 
 | Tool | Description |
 |------|-------------|
-| `generateUI` | Génère du HTML/CSS/JS depuis une description libre, sans ticket |
-| `updateUI` | Met à jour une UI libre déjà générée |
-| `listTickets` | Liste tous les tickets dans le widget de backlog |
-| `getTicket` | Récupère le détail d'un ticket, y compris sa proposition d'UI |
-| `generateUIFromTicket` | Génère une UI à partir de la description d'un ticket et l'enregistre sur ce ticket |
-| `saveUIToTicket` | Sauvegarde une UI dans un ticket existant |
-| `createTicket` | Crée un nouveau ticket, avec option de `htmlCode` |
-| `updateTicket` | Met à jour les champs d'un ticket |
-| `resetTickets` | Réinitialise le backlog avec les données de démonstration |
-| `viewTicketUI` | Ouvre la proposition d'UI d'un ticket dans le panneau de prévisualisation |
+| `generateUI` | Generates HTML/CSS/JS from a freeform description, without a ticket |
+| `updateUI` | Updates an already generated freeform UI |
+| `listTickets` | Lists all tickets in the backlog widget |
+| `getTicket` | Retrieves the details of a ticket, including its UI proposal |
+| `generateUIFromTicket` | Generates a UI from a ticket description and saves it to that ticket |
+| `saveUIToTicket` | Saves a UI to an existing ticket |
+| `createTicket` | Creates a new ticket, with an optional `htmlCode` |
+| `updateTicket` | Updates a ticket's fields |
+| `resetTickets` | Resets the backlog with demo data |
+| `viewTicketUI` | Opens a ticket's UI proposal in the preview panel |
 
 ---
 
-## Widgets HTML
+## HTML Widgets
 
-Le projet embarque **2 widgets HTML** utilisés comme MCP Apps dans le chat Copilot.
+The project includes **2 HTML widgets** used as MCP Apps in Copilot chat.
 
 ### 1. `tickets-list-widget.html`
 
-Widget de backlog affichant :
+Backlog widget displaying:
 
-- les tickets avec badges de statut,
-- les priorités avec code couleur,
-- les actions **Generate UI**, **View & Edit UI** et **Delete UI**,
-- un mode de prévisualisation plein écran,
-- un rafraîchissement automatique par polling.
+- tickets with status badges,
+- priorities with color coding,
+- the **Generate UI**, **View & Edit UI**, and **Delete UI** actions,
+- a full-screen preview mode,
+- automatic refresh by polling.
 
 ### 2. `ui-preview-widget.html`
 
-Widget de prévisualisation autonome destiné aux générations libres (cas 3), avec :
+Standalone preview widget intended for freeform generations (use case 3), with:
 
-- rendu HTML direct,
-- affichage du code,
-- coloration syntaxique via **Prism.js**.
+- direct HTML rendering,
+- code display,
+- syntax highlighting via **Prism.js**.
 
 ---
 
-## Structure du projet
+## Project structure
 
 ```text
 Copilot-Generate-UI-From-UserStory-and-manage-Tickets/
 ├── appPackage/
-│   ├── manifest.json                 ← Manifeste M365 app (v1.26)
-│   ├── uiGeneratorAgent.json         ← Définition de l'agent (v1.6)
-│   ├── ai-plugin.json                ← Outils MCP + routage LLM (v2.4)
-│   └── instruction.txt               ← Prompt système du LLM
+│   ├── manifest.json                 ← M365 app manifest (v1.26)
+│   ├── uiGeneratorAgent.json         ← Agent definition (v1.6)
+│   ├── ai-plugin.json                ← MCP tools + LLM routing (v2.4)
+│   └── instruction.txt               ← LLM system prompt
 ├── mcp-server/
 │   ├── src/
-│   │   ├── index.ts                  ← Serveur Express + CORS
-│   │   └── mcp-server.ts             ← 10 outils MCP + 2 ressources widget
+│   │   ├── index.ts                  ← Express server + CORS
+│   │   └── mcp-server.ts             ← 10 MCP tools + 2 widget resources
 │   ├── assets/
-│   │   ├── tickets-list-widget.html  ← Backlog + preview plein écran
-│   │   └── ui-preview-widget.html    ← Prévisualisation autonome
+│   │   ├── tickets-list-widget.html  ← Backlog + full-screen preview
+│   │   └── ui-preview-widget.html    ← Standalone preview
 │   ├── data/
-│   │   ├── tickets.json              ← Données runtime
-│   │   └── tickets-default.json      ← Données de démonstration
+│   │   ├── tickets.json              ← Runtime data
+│   │   └── tickets-default.json      ← Demo data
 │   ├── package.json
 │   └── .env.sample
 ├── docs/
 │   ├── getting-started.md
 │   ├── TEMPLATE.md
-│   └── skills/                       ← Documentation de référence
-├── m365agents.yml                    ← Provisionnement + déploiement
-├── m365agents.local.yml              ← Debug local avec devtunnel
+│   └── skills/                       ← Reference documentation
+├── m365agents.yml                    ← Provisioning + deployment
+├── m365agents.local.yml              ← Local debug with devtunnel
 └── env/
-    └── .env.dev                      ← Variables d'environnement
+    └── .env.dev                      ← Environment variables
 ```
 
 ---
 
-## Prérequis
+## Prerequisites
 
-Avant de lancer le projet, assurez-vous de disposer de :
+Before starting the project, make sure you have:
 
-- **Node.js 18, 20 ou 22**
-- **Visual Studio Code** avec l'extension **Microsoft 365 Agents Toolkit**
-- **Un compte Microsoft 365** avec licence Copilot
-- Aucun secret tiers supplémentaire : **pas de clé API** et **pas de base de données** nécessaires
+- **Node.js 18, 20, or 22**
+- **Visual Studio Code** with the **Microsoft 365 Agents Toolkit** extension
+- **A Microsoft 365 account** with a Copilot license
+- No additional third-party secrets: **no API key** and **no database** required
 
 ---
 
@@ -237,87 +237,87 @@ cd ..
 # F5 dans VS Code → Debug in Copilot (Edge)
 ```
 
-### Notes d'installation
+### Installation notes
 
-- Le projet peut être exécuté localement sans base de données.
-- Les tickets sont stockés dans des fichiers JSON pour simplifier les démonstrations et les itérations.
-- Le flux de debug standard repose sur **M365 Agents Toolkit** et **devtunnel**.
-
----
-
-## 🚀 Guide de démarrage
-
-Pour une mise en route pas à pas, consultez le guide dédié : [docs/getting-started.md](docs/getting-started.md)
-
-Démarrage rapide :
-
-1. Ouvrir le projet dans VS Code
-2. Vérifier la configuration locale dans `env/` et `mcp-server/.env`
-3. Lancer le debug avec **F5**
-4. Attendre l'ouverture de Copilot dans Edge
-5. Interagir avec l'agent, par exemple :
-   - *Crée un formulaire d'inscription moderne avec prénom, nom, email et bouton principal*
-   - *Affiche le backlog et génère l'UI du ticket le plus prioritaire*
-   - *Sauvegarde cette proposition sur un nouveau ticket UI*
+- The project can be run locally without a database.
+- Tickets are stored in JSON files to simplify demos and iterations.
+- The standard debug flow relies on **M365 Agents Toolkit** and **devtunnel**.
 
 ---
 
-## Flux d'utilisation
+## 🚀 Getting Started
 
-### Générer une UI depuis un ticket existant
+For a step-by-step setup, see the dedicated guide: [docs/getting-started.md](docs/getting-started.md)
 
-1. Lister les tickets du backlog
-2. Sélectionner un ticket
-3. Générer une proposition d'interface
-4. Visualiser le rendu dans le panneau latéral
-5. Demander des modifications en langage naturel
-6. Enregistrer la version finale sur le ticket
+Quick start:
 
-### Créer un ticket puis générer sa UI
-
-1. Décrire le besoin métier ou fonctionnel
-2. Créer le ticket avec ses métadonnées
-3. Générer l'interface correspondante
-4. Réviser le résultat dans le widget
-5. Mettre à jour le ticket si nécessaire
-
-### Générer une UI libre sans ticket
-
-1. Décrire une interface librement dans le chat
-2. Afficher la preview dans le widget autonome
-3. Itérer autant de fois que nécessaire
-4. Choisir ensuite de conserver le résultat tel quel ou de le rattacher à un ticket
+1. Open the project in VS Code
+2. Check the local configuration in `env/` and `mcp-server/.env`
+3. Start debugging with **F5**
+4. Wait for Copilot to open in Edge
+5. Interact with the agent, for example:
+   - *Create a modern registration form with first name, last name, email, and a primary button*
+   - *Show the backlog and generate the UI for the highest-priority ticket*
+   - *Save this proposal to a new UI ticket*
 
 ---
 
-## Données et persistance
+## Usage flow
 
-La persistance s'appuie uniquement sur des fichiers JSON :
+### Generate a UI from an existing ticket
 
-- `mcp-server/data/tickets.json` : état courant du backlog
-- `mcp-server/data/tickets-default.json` : état de référence pour la réinitialisation
+1. List the backlog tickets
+2. Select a ticket
+3. Generate an interface proposal
+4. View the rendering in the side panel
+5. Request modifications in natural language
+6. Save the final version to the ticket
 
-Ce choix permet :
+### Create a ticket, then generate its UI
 
-- une prise en main rapide,
-- un environnement de démonstration simple,
-- l'absence de dépendance à une base de données,
-- des réinitialisations instantanées via l'outil `resetTickets`.
+1. Describe the business or functional need
+2. Create the ticket with its metadata
+3. Generate the corresponding interface
+4. Review the result in the widget
+5. Update the ticket if needed
+
+### Generate a freeform UI without a ticket
+
+1. Freely describe an interface in chat
+2. Display the preview in the standalone widget
+3. Iterate as many times as needed
+4. Then choose whether to keep the result as-is or attach it to a ticket
 
 ---
 
-## Références des skills
+## Data and persistence
+
+Persistence relies only on JSON files:
+
+- `mcp-server/data/tickets.json` : current backlog state
+- `mcp-server/data/tickets-default.json` : reference state for reset
+
+This choice enables:
+
+- quick onboarding,
+- a simple demo environment,
+- no dependency on a database,
+- instant resets via the `resetTickets` tool.
+
+---
+
+## Skill references
 
 | Skill | Description |
 |-------|-------------|
-| [ui-generation-workflow.md](docs/skills/ui-generation-workflow.md) | **Comment générer, éditer et sauvegarder une interface depuis le chat Copilot** |
-| [declarative-agent-mcp-setup.md](docs/skills/declarative-agent-mcp-setup.md) | Comment créer un agent déclaratif M365 connecté à un MCP Server |
-| [mcp-app-widgets.md](docs/skills/mcp-app-widgets.md) | Comment construire des widgets interactifs dans le chat M365 |
-| [mcp-app-csp-resources.md](docs/skills/mcp-app-csp-resources.md) | Comment débloquer les ressources CDN dans les iframes M365 |
-| [widget-display-and-resourceuri.md](docs/skills/widget-display-and-resourceuri.md) | Comment contrôler quel widget s'ouvre et éviter les boucles |
-| [widget-fullscreen-and-state.md](docs/skills/widget-fullscreen-and-state.md) | Comment gérer le plein écran sans perdre l'état du widget |
-| [widget-realtime-updates.md](docs/skills/widget-realtime-updates.md) | Comment mettre à jour un widget en temps réel pendant que l'IA travaille |
-| [llm-tool-routing.md](docs/skills/llm-tool-routing.md) | Comment guider le LLM pour qu'il choisisse le bon outil |
+| [ui-generation-workflow.md](docs/skills/ui-generation-workflow.md) | **How to generate, edit, and save an interface from Copilot chat** |
+| [declarative-agent-mcp-setup.md](docs/skills/declarative-agent-mcp-setup.md) | How to create an M365 declarative agent connected to an MCP Server |
+| [mcp-app-widgets.md](docs/skills/mcp-app-widgets.md) | How to build interactive widgets in M365 Copilot chat |
+| [mcp-app-csp-resources.md](docs/skills/mcp-app-csp-resources.md) | How to unblock CDN resources in M365 iframes |
+| [widget-display-and-resourceuri.md](docs/skills/widget-display-and-resourceuri.md) | How to control which widget opens and avoid loops |
+| [widget-fullscreen-and-state.md](docs/skills/widget-fullscreen-and-state.md) | How to manage full screen without losing widget state |
+| [widget-realtime-updates.md](docs/skills/widget-realtime-updates.md) | How to update a widget in real time while the AI is working |
+| [llm-tool-routing.md](docs/skills/llm-tool-routing.md) | How to guide the LLM so it chooses the right tool |
 
 ---
 
@@ -325,17 +325,17 @@ Ce choix permet :
 
 | Version | Description |
 |---------|-------------|
-| `v1.0.0` | Version initiale — agent complet avec 3 cas d'usage UI, widget backlog, preview plein écran et polling temps réel |
+| `v1.0.0` | Initial version — complete agent with 3 UI use cases, backlog widget, full-screen preview, and real-time polling |
 
 ---
 
-## Template de référence
+## Reference template
 
-> Template de base : voir [docs/TEMPLATE.md](docs/TEMPLATE.md)
+> Base template: see [docs/TEMPLATE.md](docs/TEMPLATE.md)
 
 ---
 
-## Références documentaires
+## Documentation references
 
 - Declarative Agents for Microsoft 365 : https://aka.ms/teams-toolkit-declarative-agent
 - Model Context Protocol : https://modelcontextprotocol.io/

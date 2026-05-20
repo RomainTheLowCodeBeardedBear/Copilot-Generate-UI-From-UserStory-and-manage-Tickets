@@ -1,15 +1,15 @@
-# Skill : MCP App Widgets - patterns et pièges
+# Skill: MCP App Widgets - patterns and pitfalls
 
-> Référence adaptée pour le **projet UI Generator**. Cette skill documente les bons patterns pour construire des widgets HTML utilisés par les tools MCP du projet.
+> Reference adapted for the **UI Generator project**. This skill documents the right patterns for building HTML widgets used by the project's MCP tools.
 
 ---
 
-## Principe
+## Principle
 
-Un widget MCP App est un fichier HTML autonome rendu dans une iframe sandboxée dans M365 Copilot. Il reçoit les données du tool via `App` puis met à jour son DOM.
+An MCP App widget is a standalone HTML file rendered inside a sandboxed iframe in M365 Copilot. It receives tool data through `App` and then updates its DOM.
 
 ```
-Tool résultat (structuredContent)
+Tool result (structuredContent)
         │
         ▼
   App.ontoolresult(result)
@@ -21,22 +21,22 @@ Tool résultat (structuredContent)
   root.innerHTML = generateHtml(data)
 ```
 
-Dans ce projet, les deux widgets principaux sont :
+In this project, the two main widgets are:
 - `mcp-server/assets/tickets-list-widget.html`
 - `mcp-server/assets/ui-preview-widget.html`
 
 ---
 
-## 1. Template HTML de base
+## 1. Base HTML template
 
 ```html
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Libs externes AVANT le module si elles exposent des globals -->
+  <!-- External libs BEFORE the module if they expose globals -->
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
 
   <style>
@@ -47,7 +47,7 @@ Dans ce projet, les deux widgets principaux sont :
       font-family: var(--fontFamilyBase, 'Segoe UI', sans-serif);
     }
   </style>
-  <!-- ⚠️ </style> OBLIGATOIRE -->
+  <!-- ⚠️ </style> REQUIRED -->
 </head>
 <body>
   <div id="root"></div>
@@ -91,13 +91,13 @@ Dans ce projet, les deux widgets principaux sont :
 
 ---
 
-## 2. ⚠️ Piège critique : balise `</style>` manquante
+## 2. ⚠️ Critical pitfall: missing `</style>` tag
 
-**Symptôme** : widget vide, panneau gris, aucun DOM visible.
+**Symptom**: empty widget, gray panel, no visible DOM.
 
-**Cause** : si `</style>` manque, tout ce qui suit est interprété comme du CSS.
+**Cause**: if `</style>` is missing, everything that follows is interpreted as CSS.
 
-**Règle** : à chaque modification d'un bloc `<style>`, vérifier que le `</style>` final est bien présent.
+**Rule**: every time you modify a `<style>` block, verify that the final `</style>` is present.
 
 ```html
 <!-- ✅ correct -->
@@ -105,13 +105,13 @@ Dans ce projet, les deux widgets principaux sont :
   .card { padding: 12px; }
 </style>
 
-<!-- ❌ cassé -->
+<!-- ❌ broken -->
 <style>
   .card { padding: 12px; }
-<div>ce div ne sera jamais créé</div>
+<div>this div will never be created</div>
 ```
 
-C'est un piège classique sur les widgets HTML édités par IA.
+This is a classic trap in AI-edited HTML widgets.
 
 ---
 
@@ -120,34 +120,34 @@ C'est un piège classique sur les widgets HTML édités par IA.
 | | `server.registerTool` | `registerAppTool` |
 |---|---|---|
 | Import | `@modelcontextprotocol/sdk` | `@modelcontextprotocol/ext-apps/server` |
-| Widget HTML | ❌ Non | ✅ Oui |
-| Usage | Tool texte pur | Tool avec rendu visuel |
+| HTML widget | ❌ No | ✅ Yes |
+| Usage | Pure text tool | Tool with visual rendering |
 
-### Tool sans widget
+### Tool without a widget
 
 ```ts
 server.registerTool('getTicket', {
-  description: 'Recupere le detail complet d\'un ticket',
+  description: 'Retrieve the full details of a ticket',
   inputSchema: { ticketId: z.string() },
 }, async ({ ticketId }) => ({
-  content: [{ type: 'text', text: `Ticket ${ticketId} charge.` }],
+  content: [{ type: 'text', text: `Ticket ${ticketId} loaded.` }],
   structuredContent: { ticketId }
 }));
 ```
 
-### Tool avec widget
+### Tool with a widget
 
 ```ts
 registerAppTool(
   server,
   'listTickets',
   {
-    description: 'Liste les tickets du backlog UI',
+    description: 'List UI backlog tickets',
     inputSchema: {},
     _meta: { ui: { resourceUri: 'ui://uigenerator/tickets-list.html' } }
   },
   async () => ({
-    content: [{ type: 'text', text: 'Tickets charges.' }],
+    content: [{ type: 'text', text: 'Tickets loaded.' }],
     structuredContent: {
       type: 'ticketList',
       tickets,
@@ -157,14 +157,14 @@ registerAppTool(
 );
 ```
 
-### Resource widget
+### Widget resource
 
 ```ts
 registerAppResource(
   server,
   'UI Preview Widget',
   'ui://uigenerator/preview.html',
-  { description: 'Widget de preview UI' },
+  { description: 'UI preview widget' },
   async () => ({
     contents: [{
       uri: 'ui://uigenerator/preview.html',
@@ -184,9 +184,9 @@ registerAppResource(
 
 ---
 
-## 4. Pattern état + re-render sans framework
+## 4. State + re-render pattern without a framework
 
-Un widget MCP App passe souvent par plusieurs états : loading, erreur, succès, édition.
+An MCP App widget often goes through several states: loading, error, success, editing.
 
 ```js
 let currentData = null;
@@ -195,7 +195,7 @@ let lastError = null;
 
 function renderScreen() {
   if (isLoading) {
-    root.innerHTML = `<div>Chargement...</div>`;
+    root.innerHTML = `<div>Loading...</div>`;
     return;
   }
 
@@ -206,20 +206,20 @@ function renderScreen() {
 
   root.innerHTML = buildHtml(currentData);
 
-  // ⚠️ Ré-attacher les listeners après chaque innerHTML
+  // ⚠️ Re-attach listeners after every innerHTML
   root.querySelector('[data-action="refresh"]')?.addEventListener('click', handleRefresh);
 }
 ```
 
-Dans ce projet :
-- `ui-preview-widget.html` gère `loading`, `preview`, `code view`, `error`
-- `tickets-list-widget.html` gère `loading`, `list`, `banner`, `preview`, `edit form`
+In this project:
+- `ui-preview-widget.html` handles `loading`, `preview`, `code view`, `error`
+- `tickets-list-widget.html` handles `loading`, `list`, `banner`, `preview`, `edit form`
 
 ---
 
-## 5. Event delegation - alternative robuste
+## 5. Event delegation - a robust alternative
 
-Quand le DOM est régénéré souvent, la délégation d'événements est plus robuste que de rattacher tous les listeners après chaque `innerHTML`.
+When the DOM is regenerated often, event delegation is more robust than re-attaching all listeners after each `innerHTML`.
 
 ```js
 root.addEventListener('click', (event) => {
@@ -235,13 +235,13 @@ root.addEventListener('click', (event) => {
 });
 ```
 
-Le widget tickets du projet attache ses listeners après rendu, mais ce pattern de délégation reste utile dès que le widget devient plus complexe.
+The project's tickets widget attaches its listeners after rendering, but this delegation pattern remains useful as soon as the widget becomes more complex.
 
 ---
 
-## 6. `structuredContent` - ce que le widget reçoit vraiment
+## 6. `structuredContent` - what the widget actually receives
 
-**Règle absolue :** les données applicatives sont dans **`result.structuredContent`**.
+**Absolute rule:** application data lives in **`result.structuredContent`**.
 
 ```js
 app.ontoolresult = (result) => {
@@ -251,16 +251,16 @@ app.ontoolresult = (result) => {
 };
 ```
 
-**Ne pas faire :**
+**Do not do this:**
 ```js
 result.data      // ❌ undefined
-result.content   // ❌ résumé texte pour le LLM, pas vos données métier
-result           // ❌ objet MCP brut
+result.content   // ❌ text summary for the LLM, not your business data
+result           // ❌ raw MCP object
 ```
 
-### Exemples du projet
+### Project examples
 
-#### Résultat de `listTickets`
+#### Result of `listTickets`
 ```js
 {
   type: 'ticketList',
@@ -270,22 +270,22 @@ result           // ❌ objet MCP brut
 }
 ```
 
-#### Résultat de `generateUI` / `updateUI`
+#### Result of `generateUI` / `updateUI`
 ```js
 {
   type: 'generate',
-  description: 'Landing page moderne',
+  description: 'Modern landing page',
   htmlCode: '<!DOCTYPE html>...',
   timestamp: '...'
 }
 ```
 
-#### Résultat de `generateUIFromTicket`
+#### Result of `generateUIFromTicket`
 ```js
 {
   type: 'generate',
   ticketId: 'US-001',
-  title: 'Accueil dashboard',
+  title: 'Dashboard home',
   description: '...',
   htmlCode: '<!DOCTYPE html>...',
   ticket: { ... },
@@ -295,9 +295,9 @@ result           // ❌ objet MCP brut
 
 ---
 
-## 7. `callServerTool` - rappeler le serveur depuis le widget
+## 7. `callServerTool` - calling the server again from the widget
 
-Dans ce projet, les widgets rappellent le serveur avec la forme objet suivante :
+In this project, widgets call the server again with the following object shape:
 
 ```js
 const result = await app.callServerTool({
@@ -308,9 +308,9 @@ const result = await app.callServerTool({
 const data = result?.structuredContent;
 ```
 
-### Exemples réels utiles
+### Useful real examples
 
-#### Rafraîchir la liste des tickets
+#### Refresh the ticket list
 ```js
 await app.callServerTool({
   name: 'listTickets',
@@ -318,7 +318,7 @@ await app.callServerTool({
 });
 ```
 
-#### Réinitialiser la démo
+#### Reset the demo
 ```js
 await app.callServerTool({
   name: 'resetTickets',
@@ -326,7 +326,7 @@ await app.callServerTool({
 });
 ```
 
-#### Sauvegarder une UI sur un ticket
+#### Save a UI to a ticket
 ```js
 await app.callServerTool({
   name: 'saveUIToTicket',
@@ -337,7 +337,7 @@ await app.callServerTool({
 });
 ```
 
-#### Charger un ticket avant preview
+#### Load a ticket before preview
 ```js
 const result = await app.callServerTool({
   name: 'getTicket',
@@ -348,26 +348,26 @@ const ticket = result?.structuredContent?.ticket || result?.structuredContent;
 
 ---
 
-## 8. Bibliothèques externes dans les widgets
+## 8. External libraries in widgets
 
-Règle :
-1. déclarer les domaines dans `resourceDomains`
-2. charger les scripts globaux avant le module
-3. importer en ESM uniquement ce qui expose réellement un export ESM
+Rule:
+1. declare the domains in `resourceDomains`
+2. load global scripts before the module
+3. import as ESM only what actually exposes an ESM export
 
-### Exemple Prism.js dans `ui-preview-widget.html`
+### Prism.js example in `ui-preview-widget.html`
 
 ```html
 <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
 
 <script type="module">
-  // Prism est global, accessible via window/nom global
+  // Prism is global, accessible through window/global name
   Prism.highlightElement(codeContent);
 </script>
 ```
 
-### Exemple Fluent dans `tickets-list-widget.html`
+### Fluent example in `tickets-list-widget.html`
 
 ```js
 import { provideFluentDesignSystem, fluentButton } from 'https://cdn.jsdelivr.net/npm/@fluentui/web-components@2.6.1/+esm';
@@ -378,9 +378,9 @@ provideFluentDesignSystem().register(fluentButton());
 
 ---
 
-## 9. `escapeHtml` - obligatoire avant `innerHTML`
+## 9. `escapeHtml` - mandatory before `innerHTML`
 
-Toute donnée injectée dans du HTML doit être échappée.
+Any data injected into HTML must be escaped.
 
 ```js
 function escapeHtml(value = '') {
@@ -393,7 +393,7 @@ function escapeHtml(value = '') {
 }
 ```
 
-### Exemples du projet
+### Project examples
 
 ```js
 <h2 class="ticket-title">${escapeHtml(ticket.title)}</h2>
@@ -401,59 +401,59 @@ function escapeHtml(value = '') {
 <p class="desc-short">${escapeHtml(short)}</p>
 ```
 
-Sans ça, un titre de ticket ou une description peut casser le DOM ou injecter du contenu non désiré.
+Without this, a ticket title or description can break the DOM or inject unwanted content.
 
 ---
 
-## 10. Widgets du projet UI Generator
+## 10. Widgets in the UI Generator project
 
 ### `tickets-list-widget.html`
-À utiliser pour :
+Use for:
 - `listTickets`
 - `createTicket`
 - `updateTicket`
 - `resetTickets`
 
-Patterns intéressants :
-- affichage backlog + résumé KPI
-- formulaires inline d'édition
-- appels `callServerTool()` pour relire / mettre à jour les tickets
-- `app.sendMessage()` pour demander la génération d'UI depuis un ticket
-- preview plein écran avec restauration d'état via `localStorage`
+Interesting patterns:
+- backlog display + KPI summary
+- inline edit forms
+- `callServerTool()` calls to re-read / update tickets
+- `app.sendMessage()` to request UI generation from a ticket
+- full-screen preview with state restoration via `localStorage`
 
 ### `ui-preview-widget.html`
-À utiliser pour :
+Use for:
 - `generateUI`
 - `updateUI`
 - `generateUIFromTicket`
 - `viewTicketUI`
 
-Patterns intéressants :
-- iframe `srcdoc` pour injecter le HTML généré
-- bascule aperçu / code
-- mise en évidence du code avec Prism.js
+Interesting patterns:
+- `srcdoc` iframe to inject the generated HTML
+- preview / code toggle
+- code highlighting with Prism.js
 - copy-to-clipboard
-- `requestDisplayMode()` pour inline / fullscreen
+- `requestDisplayMode()` for inline / fullscreen
 
 ---
 
-## Checklist rapide
+## Quick checklist
 
-- `registerAppTool` pour tout tool avec widget
-- `registerAppResource` pour chaque HTML autonome
-- `result.structuredContent` uniquement
-- `</style>` toujours fermé
-- `escapeHtml()` avant `innerHTML`
-- rebind des events après rendu, ou event delegation
-- `callServerTool()` pour rappeler le serveur
-- domaines CDN autorisés dans `resourceDomains`
+- `registerAppTool` for any tool with a widget
+- `registerAppResource` for each standalone HTML file
+- `result.structuredContent` only
+- `</style>` always closed
+- `escapeHtml()` before `innerHTML`
+- rebind events after rendering, or use event delegation
+- `callServerTool()` to call the server again
+- CDN domains allowed in `resourceDomains`
 
 ---
 
-## À retenir
+## Key takeaway
 
-Les deux causes de panne les plus fréquentes sont :
-1. un widget qui lit autre chose que `result.structuredContent`
-2. un HTML cassé à cause d'un `</style>` manquant
+The two most common failure causes are:
+1. a widget that reads something other than `result.structuredContent`
+2. broken HTML caused by a missing `</style>`
 
-Le reste relève surtout d'un bon pattern de rendu et d'un câblage propre entre `registerAppTool`, `registerAppResource` et `callServerTool()`.
+Everything else is mostly about using a good rendering pattern and clean wiring between `registerAppTool`, `registerAppResource`, and `callServerTool()`.

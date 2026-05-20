@@ -1,55 +1,55 @@
-# Comment gérer le plein écran sans perdre l'état du widget
+# How to handle fullscreen without losing widget state
 
-## Le problème
-Dans ce projet, `app.requestDisplayMode({ mode: 'fullscreen' })` ne réutilise pas l'iframe courante. Le host crée une **nouvelle iframe**. Toute la mémoire JavaScript est donc perdue : variables, écouteurs d'événements, timers, références DOM, tout repart à zéro.
+## The problem
+In this project, `app.requestDisplayMode({ mode: 'fullscreen' })` does not reuse the current iframe. The host creates a **new iframe**. So all JavaScript memory is lost: variables, event listeners, timers, DOM references—everything starts over from zero.
 
-### Symptôme
-L'utilisateur clique sur le bouton plein écran, mais le widget affiche son état initial ou son écran de chargement au lieu du contenu attendu.
+### Symptom
+The user clicks the fullscreen button, but the widget shows its initial state or its loading screen instead of the expected content.
 
-## La solution
-La bonne solution est de sauvegarder **l'état minimal restaurable** dans `localStorage`, avec une expiration très courte.
+## The solution
+The right solution is to save the **minimal restorable state** in `localStorage`, with a very short expiration.
 
 ```javascript
-// Avant le passage en plein écran : sauver le ticketId
+// Before switching to fullscreen: save the ticketId
 localStorage.setItem('preview_ticket', JSON.stringify({
   id: ticketId,
   ts: Date.now()
 }));
 app.requestDisplayMode({ mode: 'fullscreen' });
 
-// Au démarrage : relire localStorage
+// On startup: reread localStorage
 const saved = JSON.parse(localStorage.getItem('preview_ticket') || 'null');
-if (saved && Date.now() - saved.ts < 10000) { // expiration 10 s
+if (saved && Date.now() - saved.ts < 10000) { // 10 s expiration
   localStorage.removeItem('preview_ticket');
-  // Restaurer l'état à partir de saved.id
+  // Restore state from saved.id
   const result = await app.callServerTool({
     name: 'getTicket',
     arguments: { ticketId: saved.id }
   });
-  // Refaire le rendu avec les données restaurées
+  // Re-render with the restored data
 }
 ```
 
-### Pourquoi 10 secondes d'expiration
-Le but n'est pas de persister un état métier durable. On veut seulement survivre au temps nécessaire pour que l'iframe fullscreen se recrée et relise la valeur. Dix secondes suffisent largement pour ce transfert, tout en évitant qu'une ancienne valeur soit réutilisée plus tard par erreur.
+### Why a 10-second expiration
+The goal is not to persist durable business state. We only want to survive the time needed for the fullscreen iframe to be recreated and reread the value. Ten seconds is more than enough for that transfer, while avoiding an old value being reused later by mistake.
 
-### Le bouton Retour
-Pour revenir à la vue compacte, utilisez `app.requestDisplayMode({ mode: 'inline' })`.
+### The Back button
+To return to compact view, use `app.requestDisplayMode({ mode: 'inline' })`.
 
-N'utilisez pas `app.requestTeardown()`. Cette méthode détruit complètement le widget, alors qu'ici on veut simplement changer de mode d'affichage.
+Do not use `app.requestTeardown()`. That method completely destroys the widget, whereas here we only want to change the display mode.
 
-### Variante réellement utilisée dans ce projet
-Le fichier `mcp-server\assets\tickets-list-widget.html` applique ce pattern avec deux clés séparées : `uigen_preview_id` et `uigen_preview_ts`. Le principe est le même : sauver un identifiant juste avant le fullscreen, relire cette information au démarrage du nouvel iframe, puis la supprimer immédiatement.
+### Variant actually used in this project
+The file `mcp-server\assets\tickets-list-widget.html` applies this pattern with two separate keys: `uigen_preview_id` and `uigen_preview_ts`. The principle is the same: save an identifier just before fullscreen, reread that information when the new iframe starts, then remove it immediately.
 
-## Exemples
-- Dans `openPreview()`, le widget sauvegarde l'identifiant du ticket avant `requestDisplayMode({ mode: 'fullscreen' })`.
-- Au démarrage du widget, `loadPreviewState()` lit `localStorage`, vérifie l'âge de la donnée, puis `await openPreview(pendingPreviewId)` pour restaurer l'écran attendu.
-- Le bouton **Retour** du mode preview appelle `requestDisplayMode({ mode: 'inline' })` pour revenir au board sans détruire le composant.
+## Examples
+- In `openPreview()`, the widget saves the ticket identifier before `requestDisplayMode({ mode: 'fullscreen' })`.
+- When the widget starts, `loadPreviewState()` reads `localStorage`, checks the age of the data, then calls `await openPreview(pendingPreviewId)` to restore the expected screen.
+- The **Back** button in preview mode calls `requestDisplayMode({ mode: 'inline' })` to return to the board without destroying the component.
 
-## Implémentation réelle dans `tickets-list-widget.html`
+## Real implementation in `tickets-list-widget.html`
 
-### Helpers `localStorage` exacts
-Le projet n'utilise pas un exemple générique : il stocke deux clés scalaires avec une fenêtre de validité de 10 secondes.
+### Exact `localStorage` helpers
+The project does not use a generic example: it stores two scalar keys with a 10-second validity window.
 
 ```javascript
 function savePreviewState(ticketId) {
@@ -74,8 +74,8 @@ function clearPreviewState() {
 }
 ```
 
-### État réellement suivi par le widget
-Le fullscreen n'est pas géré par une variable isolée, mais par un sous-ensemble de l'état global :
+### State actually tracked by the widget
+Fullscreen is not handled by an isolated variable, but by a subset of the global state:
 
 ```javascript
 const state = {
@@ -89,13 +89,13 @@ const state = {
 };
 ```
 
-`previewTicketId`, `previewHtml` et `previewTitle` servent à reconstruire l'écran. `previewPollId` sert à arrêter proprement le timer au moment du retour inline.
+`previewTicketId`, `previewHtml`, and `previewTitle` are used to rebuild the screen. `previewPollId` is used to stop the timer cleanly when returning inline.
 
-### Restauration au démarrage du module
-Le pattern de restauration est tout à la fin du fichier, après `app.connect()` et l'initialisation du thème :
+### Restoration when the module starts
+The restoration pattern is at the very end of the file, after `app.connect()` and theme initialization:
 
 ```javascript
-// Check if we should restore preview mode (widget re-created in fullscreen)
+// Check whether we should restore preview mode (widget re-created in fullscreen)
 const pendingPreviewId = loadPreviewState();
 if (pendingPreviewId) {
   clearPreviewState();
@@ -105,15 +105,15 @@ if (pendingPreviewId) {
 }
 ```
 
-Ce point est essentiel : le widget restauré ne tente pas de reconstruire la preview depuis un cache local riche. Il relance le flux normal `openPreview(ticketId)`.
+This point is essential: the restored widget does not try to rebuild the preview from a rich local cache. It restarts the normal `openPreview(ticketId)` flow.
 
-### Flux complet de `openPreview()`
-Le vrai enchaînement est : `getTicket` → état mémoire → `savePreviewState()` → `updateModelContext()` → `requestDisplayMode()` → `renderPreview()`.
+### Full `openPreview()` flow
+The real sequence is: `getTicket` → in-memory state → `savePreviewState()` → `updateModelContext()` → `requestDisplayMode()` → `renderPreview()`.
 
 ```javascript
 async function openPreview(ticketId) {
   try {
-    // Use getTicket (no resourceUri) to avoid host trying to open preview.html
+    // Use getTicket (no resourceUri) to avoid the host trying to open preview.html
     const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
     const data = result?.structuredContent;
     const ticket = data?.ticket || data;
@@ -125,22 +125,22 @@ async function openPreview(ticketId) {
       savePreviewState(ticketId);
       try {
         await app.updateModelContext({
-          content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${ticket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+          content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${ticket.title || ''}). Here is the current HTML code for this UI:\n\n${htmlCode}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
         });
       } catch (_) {}
       try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
       renderPreview();
     } else {
-      setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
+      setBanner(`No UI available for ${ticketId}.`, 'error');
     }
   } catch (e) {
-    setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
+    setBanner(`Error: ${e instanceof Error ? e.message : 'unable'}`, 'error');
   }
 }
 ```
 
-### Nettoyage réel du bouton Retour
-Le retour inline ne détruit pas le widget ; il nettoie l'état local puis demande simplement un autre mode d'affichage.
+### Real cleanup of the Back button
+Returning inline does not destroy the widget; it clears local state and then simply requests another display mode.
 
 ```javascript
 document.getElementById('btn-back-preview').addEventListener('click', async () => {
@@ -153,17 +153,17 @@ document.getElementById('btn-back-preview').addEventListener('click', async () =
 });
 ```
 
-### Pourquoi deux clés (`uigen_preview_id` + `uigen_preview_ts`) au lieu d'un blob JSON
-Le code réel montre un choix volontairement simple :
-- lecture directe sans `JSON.parse()` ;
-- écriture atomique facile de la date et de l'identifiant ;
-- suppression explicite champ par champ ;
-- robustesse meilleure dans un `try/catch` silencieux si une des clés manque ou est corrompue.
+### Why two keys (`uigen_preview_id` + `uigen_preview_ts`) instead of a JSON blob
+The real code shows a deliberately simple choice:
+- direct reading without `JSON.parse()`;
+- easy atomic writing of the date and identifier;
+- explicit field-by-field deletion;
+- better robustness in a silent `try/catch` if one of the keys is missing or corrupted.
 
-Un blob JSON aurait aussi fonctionné, mais cette version est plus tolérante pour un transfert d'état très court entre deux iframes.
+A JSON blob would also have worked, but this version is more tolerant for a very short state transfer between two iframes.
 
-### Auto-fullscreen dans `ui-preview-widget.html`
-La preview libre a son propre pattern : le premier résultat d'outil passe automatiquement en fullscreen dans `showPreview()`.
+### Auto-fullscreen in `ui-preview-widget.html`
+The standalone preview has its own pattern: the first tool result automatically switches to fullscreen in `showPreview()`.
 
 ```javascript
 function showPreview(htmlCode, description, type) {
@@ -189,7 +189,7 @@ function showPreview(htmlCode, description, type) {
   doc.write(htmlCode);
   doc.close();
 
-  const label = type === 'update' ? 'Mis a jour' : 'Genere';
+  const label = type === 'update' ? 'Updated' : 'Generated';
   statusBadge.textContent = label;
   infoBar.textContent = description;
 
@@ -204,9 +204,8 @@ function showPreview(htmlCode, description, type) {
 ```
 
 ### `requestDisplayMode({ mode: 'inline' })` vs `requestTeardown()`
-Dans ce projet :
-- `requestDisplayMode({ mode: 'fullscreen' })` ou `inline` = on demande au host de changer le **mode d'affichage** du même widget logique ;
-- `requestTeardown()` = on demande la fermeture/destruction du widget.
+In this project:
+- `requestDisplayMode({ mode: 'fullscreen' })` or `inline` = ask the host to change the **display mode** of the same logical widget;
+- `requestTeardown()` = ask for the widget to be closed/destroyed.
 
-Le board tickets utilise `inline` au retour parce qu'il veut préserver le scénario utilisateur : revenir au backlog, pas fermer l'expérience entière.
-
+The ticket board uses `inline` on the way back because it wants to preserve the user scenario: return to the backlog, not close the whole experience.

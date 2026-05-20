@@ -1,10 +1,10 @@
-# Skill : Agent déclaratif M365 + MCP Server - setup complet
+# Skill: M365 Declarative Agent + MCP Server - complete setup
 
-> Référence adaptée pour **Copilot-Generate-UI-From-UserStory-and-manage-Tickets**. Cette skill documente le câblage complet entre un agent déclaratif M365 Copilot et le serveur MCP du projet UI Generator.
+> Reference adapted for **Copilot-Generate-UI-From-UserStory-and-manage-Tickets**. This skill documents the complete wiring between an M365 Copilot declarative agent and the MCP server in the UI Generator project.
 
 ---
 
-## Vue d'ensemble de l'architecture
+## Architecture overview
 
 ```
 M365 Copilot Chat
@@ -17,26 +17,26 @@ Declarative Agent (appPackage/)
       ▼
 MCP Server Express (mcp-server/)
       │
-      ▼ devtunnel (localhost -> HTTPS public)
-M365 peut appeler le serveur
+      ▼ devtunnel (localhost -> public HTTPS)
+M365 can call the server
 ```
 
 ---
 
-## 1. Structure du projet
+## 1. Project structure
 
 ```
 Copilot-Generate-UI-From-UserStory-and-manage-Tickets/
 ├── appPackage/
-│   ├── manifest.json              ← manifest M365 de l'agent
-│   ├── uiGeneratorAgent.json      ← agent déclaratif (instructions + actions)
-│   ├── ai-plugin.json             ← décrit les tools MCP et le runtime
-│   ├── instruction.txt            ← instructions système de l'agent
+│   ├── manifest.json              ← agent M365 manifest
+│   ├── uiGeneratorAgent.json      ← declarative agent (instructions + actions)
+│   ├── ai-plugin.json             ← describes MCP tools and the runtime
+│   ├── instruction.txt            ← agent system instructions
 │   └── color.png / outline.png
 ├── mcp-server/
 │   ├── src/
-│   │   ├── index.ts               ← serveur Express + CORS + routes /mcp
-│   │   ├── mcp-server.ts          ← définition des tools MCP et widgets
+│   │   ├── index.ts               ← Express server + CORS + /mcp routes
+│   │   ├── mcp-server.ts          ← MCP tools and widget definitions
 │   │   └── config.ts
 │   ├── assets/
 │   │   ├── ui-preview-widget.html
@@ -46,18 +46,18 @@ Copilot-Generate-UI-From-UserStory-and-manage-Tickets/
 │   │   └── tickets-default.json
 │   ├── package.json
 │   └── tsconfig.json
-├── m365agents.local.yml           ← orchestration debug local + build MCP server
-├── m365agents.yml                 ← provision / publish M365
+├── m365agents.local.yml           ← local debug orchestration + MCP server build
+├── m365agents.yml                 ← M365 provision / publish
 └── env/
-    ├── .env.local                 ← variables injectées par le toolkit
+    ├── .env.local                 ← variables injected by the toolkit
     └── .env.dev
 ```
 
 ---
 
-## 2. `manifest.json` - points clés
+## 2. `manifest.json` - key points
 
-Le manifest référence **l'agent déclaratif**, pas directement le plugin MCP.
+The manifest references the **declarative agent**, not the MCP plugin directly.
 
 ```json
 {
@@ -67,11 +67,11 @@ Le manifest référence **l'agent déclaratif**, pas directement le plugin MCP.
   "version": "1.0.0",
   "name": {
     "short": "UI Generator${{APP_NAME_SUFFIX}}",
-    "full": "Agent generateur d'interfaces HTML en temps reel"
+    "full": "Real-time HTML interface generator agent"
   },
   "description": {
-    "short": "Decrivez une interface, l'agent la genere en direct dans le chat.",
-    "full": "Agent M365 Copilot qui genere des interfaces HTML/CSS/JS a la volee..."
+    "short": "Describe an interface and the agent generates it live in the chat.",
+    "full": "M365 Copilot agent that generates HTML/CSS/JS interfaces on the fly..."
   },
   "copilotAgents": {
     "declarativeAgents": [
@@ -85,27 +85,27 @@ Le manifest référence **l'agent déclaratif**, pas directement le plugin MCP.
 }
 ```
 
-**Points importants :**
-- Le manifest ne référence **pas** `ai-plugin.json`.
-- Le lien vers MCP se fait plus bas via `uiGeneratorAgent.json` -> `actions`.
-- `${{TEAMS_APP_ID}}` est injecté automatiquement par le toolkit.
-- Ici, le fichier déclaratif exact est **`uiGeneratorAgent.json`**.
+**Important points:**
+- The manifest does **not** reference `ai-plugin.json`.
+- The MCP link is made lower down through `uiGeneratorAgent.json` -> `actions`.
+- `${{TEAMS_APP_ID}}` is automatically injected by the toolkit.
+- Here, the exact declarative file is **`uiGeneratorAgent.json`**.
 
 ---
 
-## 3. `uiGeneratorAgent.json` - instructions de l'agent
+## 3. `uiGeneratorAgent.json` - agent instructions
 
 ```json
 {
   "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.6/schema.json",
   "version": "v1.6",
   "name": "UI Generator${{APP_NAME_SUFFIX}}",
-  "description": "Agent qui genere des interfaces HTML/CSS/JS a la volee.",
+  "description": "Agent that generates HTML/CSS/JS interfaces on the fly.",
   "instructions": "$[file('instruction.txt')]",
   "conversation_starters": [
     {
-      "title": "Formulaire de contact",
-      "text": "Genere un formulaire de contact avec nom, email, message et un bouton envoyer"
+      "title": "Contact form",
+      "text": "Generate a contact form with name, email, message, and a send button"
     }
   ],
   "actions": [
@@ -117,34 +117,34 @@ Le manifest référence **l'agent déclaratif**, pas directement le plugin MCP.
 }
 ```
 
-**Points importants :**
-- `instructions` peut être inline, mais un fichier `.txt` reste préférable pour des consignes longues.
-- `actions` est **le point de liaison** vers `ai-plugin.json`.
-- `version: v1.6` est la version du schéma d'agent déclaratif, **pas** celle du manifest Teams.
+**Important points:**
+- `instructions` can be inline, but a `.txt` file is still preferable for long instructions.
+- `actions` is **the link point** to `ai-plugin.json`.
+- `version: v1.6` is the declarative agent schema version, **not** the Teams manifest version.
 
 ---
 
-## 4. `ai-plugin.json` - connexion MCP
+## 4. `ai-plugin.json` - MCP connection
 
-### ⚠️ `description_for_model` = LE CHAMP LE PLUS CRITIQUE
+### ⚠️ `description_for_model` = THE MOST CRITICAL FIELD
 
-C'est **le champ le plus important de tout le plugin**.
+It is **the most important field in the entire plugin**.
 
-C'est lui qui explique au LLM **comment router la demande vers le bon tool** :
-- `generateUI` / `updateUI` pour une UI libre sans ticket
-- `listTickets` / `getTicket` pour consulter le backlog
-- `generateUIFromTicket` pour générer une UI à partir d'un ticket
-- `createTicket` pour créer un ticket et éventuellement y sauvegarder le HTML final
-- `saveUIToTicket`, `updateTicket`, `resetTickets`, `viewTicketUI` pour les actions de gestion
+It is what tells the LLM **how to route the request to the right tool**:
+- `generateUI` / `updateUI` for a standalone UI without a ticket
+- `listTickets` / `getTicket` to browse the backlog
+- `generateUIFromTicket` to generate a UI from a ticket
+- `createTicket` to create a ticket and optionally save the final HTML into it
+- `saveUIToTicket`, `updateTicket`, `resetTickets`, `viewTicketUI` for management actions
 
-Dans ce projet, `description_for_model` doit impérativement couvrir **les 3 cas d'usage** :
-1. **UI depuis un ticket existant** -> utiliser `generateUIFromTicket`
-2. **Créer un ticket puis générer son UI** -> `createTicket`, puis `generateUIFromTicket`
-3. **UI libre sans ticket** -> `generateUI`, puis `updateUI` pour les itérations
+In this project, `description_for_model` must explicitly cover **the 3 use cases**:
+1. **UI from an existing ticket** -> use `generateUIFromTicket`
+2. **Create a ticket then generate its UI** -> `createTicket`, then `generateUIFromTicket`
+3. **Standalone UI without a ticket** -> `generateUI`, then `updateUI` for iterations
 
-Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans un ticket, il faut appeler `createTicket` avec **le dernier `htmlCode` complet** de la conversation.
+And most importantly: if the user later asks to save that standalone UI into a ticket, you must call `createTicket` with **the latest full `htmlCode`** from the conversation.
 
-### Structure cible
+### Target structure
 
 ```json
 {
@@ -152,19 +152,19 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
   "schema_version": "v2.4",
   "namespace": "uigenerator",
   "name_for_human": "UI Generator${{APP_NAME_SUFFIX}}",
-  "description_for_human": "Genere des interfaces HTML/CSS/JS a la volee dans le chat M365 Copilot et gere des tickets UI.",
-  "description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web... TROIS CAS D'USAGE...",
+  "description_for_human": "Generate HTML/CSS/JS interfaces on the fly in M365 Copilot chat and manage UI tickets.",
+  "description_for_model": "UI ticket management and web interface generation plugin... THREE USE CASES...",
   "functions": [
-    { "name": "generateUI", "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre." },
-    { "name": "updateUI", "description": "Modifie l'interface existante affichee dans le panneau lateral." },
-    { "name": "listTickets", "description": "Liste les tickets du backlog UI." },
-    { "name": "getTicket", "description": "Recupere le detail complet d'un ticket." },
-    { "name": "generateUIFromTicket", "description": "Genere ou modifie une interface a partir d'un ticket." },
-    { "name": "saveUIToTicket", "description": "Enregistre la version finale d'une interface sur un ticket existant." },
-    { "name": "createTicket", "description": "Cree un ticket. Peut inclure htmlCode." },
-    { "name": "updateTicket", "description": "Met a jour les champs d'un ticket." },
-    { "name": "resetTickets", "description": "Reinitialise le backlog de demo." },
-    { "name": "viewTicketUI", "description": "Affiche la proposition UI d'un ticket dans le preview panel." }
+    { "name": "generateUI", "description": "Generate a complete HTML/CSS/JS interface from a standalone description." },
+    { "name": "updateUI", "description": "Modify the existing interface shown in the side panel." },
+    { "name": "listTickets", "description": "List UI backlog tickets." },
+    { "name": "getTicket", "description": "Retrieve the full details of a ticket." },
+    { "name": "generateUIFromTicket", "description": "Generate or modify an interface from a ticket." },
+    { "name": "saveUIToTicket", "description": "Save the final version of an interface to an existing ticket." },
+    { "name": "createTicket", "description": "Create a ticket. Can include htmlCode." },
+    { "name": "updateTicket", "description": "Update ticket fields." },
+    { "name": "resetTickets", "description": "Reset the demo backlog." },
+    { "name": "viewTicketUI", "description": "Display a ticket's UI proposal in the preview panel." }
   ],
   "runtimes": [
     {
@@ -192,32 +192,32 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
 }
 ```
 
-### Points critiques
+### Critical points
 - `schema_version` = **`v2.4`**
 - `namespace` = **`uigenerator`**
 - `type` = **`RemoteMCPServer`**
-- URL runtime = **`${{OPENAPI_SERVER_URL}}/mcp`**
-- chaque tool doit exposer un `inputSchema` JSON Schema valide
-- chaque tool doit inclure `"execution": { "taskSupport": "forbidden" }`
-- pour un widget, ajouter `"_meta": { "ui": { "resourceUri": "ui://..." } }`
+- runtime URL = **`${{OPENAPI_SERVER_URL}}/mcp`**
+- each tool must expose a valid JSON Schema `inputSchema`
+- each tool must include `"execution": { "taskSupport": "forbidden" }`
+- for a widget, add `"_meta": { "ui": { "resourceUri": "ui://..." } }`
 
-### Exemples de tools réels
+### Real tool examples
 
-#### Tool de preview UI
+#### UI preview tool
 ```json
 {
   "name": "generateUI",
-  "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre (sans ticket).",
+  "description": "Generate a complete HTML/CSS/JS interface from a standalone description (without a ticket).",
   "inputSchema": {
     "type": "object",
     "properties": {
       "description": {
         "type": "string",
-        "description": "Description en langage naturel de l'interface a generer"
+        "description": "Natural-language description of the interface to generate"
       },
       "htmlCode": {
         "type": "string",
-        "description": "Code HTML/CSS/JS complet de l'interface generee. Document HTML valide auto-contenu."
+        "description": "Complete HTML/CSS/JS code for the generated interface. Self-contained valid HTML document."
       }
     },
     "required": ["description", "htmlCode"],
@@ -232,11 +232,11 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
 }
 ```
 
-#### Tool backlog tickets
+#### Ticket backlog tool
 ```json
 {
   "name": "listTickets",
-  "description": "Liste tous les tickets UI disponibles sans inclure le contenu HTML des propositions UI.",
+  "description": "List all available UI tickets without including the HTML content of UI proposals.",
   "inputSchema": {
     "type": "object",
     "properties": {},
@@ -253,21 +253,21 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
 }
 ```
 
-#### Tool ticket -> UI
+#### Ticket -> UI tool
 ```json
 {
   "name": "generateUIFromTicket",
-  "description": "Genere une interface HTML/CSS/JS a partir de la description d'un ticket et enregistre la proposition UI sur ce ticket.",
+  "description": "Generate an HTML/CSS/JS interface from a ticket description and save the UI proposal on that ticket.",
   "inputSchema": {
     "type": "object",
     "properties": {
       "ticketId": {
         "type": "string",
-        "description": "Identifiant du ticket source (ex: 'US-001')"
+        "description": "Source ticket identifier (example: 'US-001')"
       },
       "htmlCode": {
         "type": "string",
-        "description": "Code HTML/CSS/JS complet genere a partir de la description du ticket."
+        "description": "Complete HTML/CSS/JS code generated from the ticket description."
       }
     },
     "required": ["ticketId", "htmlCode"],
@@ -278,11 +278,11 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
 }
 ```
 
-#### Tool création de ticket avec sauvegarde d'UI
+#### Ticket creation tool with UI save
 ```json
 {
   "name": "createTicket",
-  "description": "Cree un nouveau ticket. Si htmlCode est fourni, enregistre aussi la proposition UI directement.",
+  "description": "Create a new ticket. If htmlCode is provided, also save the UI proposal directly.",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -295,7 +295,7 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
       "assignee": { "type": "string" },
       "htmlCode": {
         "type": "string",
-        "description": "Inclure le dernier HTML genere/modifie dans la conversation"
+        "description": "Include the latest HTML generated/modified in the conversation"
       }
     },
     "required": ["title", "description"],
@@ -310,15 +310,15 @@ Et surtout : si l'utilisateur demande ensuite de sauvegarder cette UI libre dans
 }
 ```
 
-### Règle d'or
+### Golden rule
 
-Si le routage des tools est mauvais, le problème vient presque toujours de `description_for_model` avant toute autre chose.
+If tool routing is wrong, the problem almost always comes from `description_for_model` before anything else.
 
 ---
 
-## 5. `m365agents.local.yml` - orchestration debug local
+## 5. `m365agents.local.yml` - local debug orchestration
 
-Ce fichier est exécuté lors d'un **F5 / debug local**.
+This file runs during **F5 / local debug**.
 
 ```yaml
 # yaml-language-server: $schema=https://aka.ms/m365-agents-toolkits/v1.11/yaml.schema.json
@@ -366,34 +366,34 @@ deploy:
       workingDirectory: ./mcp-server
 ```
 
-**En pratique :**
-1. le toolkit provisionne l'application M365
-2. zip + valide + met à jour l'app package
-3. crée le devtunnel
-4. injecte `OPENAPI_SERVER_URL`
-5. build puis démarre le serveur MCP
-6. ouvre Copilot avec l'agent chargé
+**In practice:**
+1. the toolkit provisions the M365 application
+2. zips + validates + updates the app package
+3. creates the devtunnel
+4. injects `OPENAPI_SERVER_URL`
+5. builds then starts the MCP server
+6. opens Copilot with the loaded agent
 
 ---
 
-## 6. Variables d'environnement
+## 6. Environment variables
 
 ```bash
-# Variables gérées par le toolkit
+# Variables managed by the toolkit
 TEAMSFX_ENV=local
 APP_NAME_SUFFIX=local
-TEAMS_APP_ID=<auto-genere>
-M365_TITLE_ID=<auto-genere>
-M365_APP_ID=<auto-genere>
+TEAMS_APP_ID=<auto-generated>
+M365_TITLE_ID=<auto-generated>
+M365_APP_ID=<auto-generated>
 
-# URL du devtunnel injectée à chaque session
+# Devtunnel URL injected for each session
 OPENAPI_SERVER_URL=https://xxxxxxxx-xxxx.devtunnels.ms
 ```
 
-**Important :**
-- `OPENAPI_SERVER_URL` change régulièrement.
-- Ne pas la hardcoder dans `ai-plugin.json`.
-- Toujours garder `${{OPENAPI_SERVER_URL}}/mcp`.
+**Important:**
+- `OPENAPI_SERVER_URL` changes regularly.
+- Do not hardcode it in `ai-plugin.json`.
+- Always keep `${{OPENAPI_SERVER_URL}}/mcp`.
 
 ---
 
@@ -442,14 +442,14 @@ app.use(cors({
 app.options('*', cors());
 ```
 
-### ⚠️ Pièges CORS
-- `origin === 'null'` doit être autorisé : les iframes M365 sandboxées l'envoient souvent littéralement.
-- ne pas oublier `app.options('*', cors())`
-- inclure les headers MCP custom dans `allowedHeaders`
-- autoriser aussi `widgetcopilot.net` et `usercontent.microsoft.com` pour les cas d'hébergement M365
+### ⚠️ CORS pitfalls
+- `origin === 'null'` must be allowed: sandboxed M365 iframes often send it literally.
+- do not forget `app.options('*', cors())`
+- include custom MCP headers in `allowedHeaders`
+- also allow `widgetcopilot.net` and `usercontent.microsoft.com` for M365 hosting cases
 
-### Pattern stateless MCP
-Le serveur crée **un nouveau `McpServer` et un nouveau transport par requête** :
+### Stateless MCP pattern
+The server creates **a new `McpServer` and a new transport per request**:
 
 ```ts
 app.post('/mcp', async (req, res) => {
@@ -464,31 +464,31 @@ app.post('/mcp', async (req, res) => {
 });
 ```
 
-Le projet expose aussi `GET /mcp`, `DELETE /mcp` et `GET /health`.
+The project also exposes `GET /mcp`, `DELETE /mcp`, and `GET /health`.
 
 ---
 
-## 8. `mcp-server.ts` - définir les tools et widgets
+## 8. `mcp-server.ts` - define tools and widgets
 
-### Ressources UI du projet
+### Project UI resources
 ```ts
 const PREVIEW_URI = 'ui://uigenerator/preview.html';
 const TICKETS_LIST_URI = 'ui://uigenerator/tickets-list.html';
 ```
 
-### Widgets enregistrés
+### Registered widgets
 ```ts
 registerAppResource(server, 'UI Preview Widget', PREVIEW_URI, ...)
 registerAppResource(server, 'Tickets List Widget', TICKETS_LIST_URI, ...)
 ```
 
-### Exemple : resource de preview
+### Example: preview resource
 ```ts
 registerAppResource(
   server,
   'UI Preview Widget',
   PREVIEW_URI,
-  { description: 'Widget de previsualisation des interfaces generees' },
+  { description: 'Preview widget for generated interfaces' },
   async () => ({
     contents: [{
       uri: PREVIEW_URI,
@@ -511,21 +511,21 @@ registerAppResource(
 );
 ```
 
-### Exemple : tool avec widget de preview
+### Example: tool with preview widget
 ```ts
 registerAppTool(
   server,
   'generateUI',
   {
-    description: 'Genere une interface HTML/CSS/JS complete a partir d\'une description',
+    description: 'Generate a complete HTML/CSS/JS interface from a description',
     inputSchema: {
-      description: z.string().describe('Description de l\'interface generee'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet auto-contenu'),
+      description: z.string().describe('Description of the generated interface'),
+      htmlCode: z.string().describe('Complete self-contained HTML/CSS/JS code'),
     },
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ description, htmlCode }) => ({
-    content: [{ type: 'text', text: `Interface generee: ${description}` }],
+    content: [{ type: 'text', text: `Generated interface: ${description}` }],
     structuredContent: {
       type: 'generate',
       description,
@@ -536,19 +536,19 @@ registerAppTool(
 );
 ```
 
-### Exemple : tool backlog avec widget liste
+### Example: backlog tool with list widget
 ```ts
 registerAppTool(
   server,
   'listTickets',
   {
-    description: 'Liste les tickets du backlog avec leur statut, priorite et disponibilite d\'une proposition UI',
+    description: 'List backlog tickets with their status, priority, and availability of a UI proposal',
     inputSchema: {},
     annotations: { readOnlyHint: true },
     _meta: { ui: { resourceUri: TICKETS_LIST_URI } },
   },
   async () => ({
-    content: [{ type: 'text', text: '3 tickets disponibles.' }],
+    content: [{ type: 'text', text: '3 tickets available.' }],
     structuredContent: {
       type: 'ticketList',
       tickets: summarizedTickets,
@@ -559,7 +559,7 @@ registerAppTool(
 );
 ```
 
-### Tools réellement exposés par le serveur
+### Tools actually exposed by the server
 - `generateUI`
 - `updateUI`
 - `listTickets`
@@ -595,10 +595,10 @@ registerAppTool(
 }
 ```
 
-**Notes :**
-- `type: module` est requis
-- `tsx` est utilisé pour le mode dev
-- le serveur est compilé par `tsc`
+**Notes:**
+- `type: module` is required
+- `tsx` is used for dev mode
+- the server is compiled by `tsc`
 
 ---
 
@@ -620,30 +620,30 @@ registerAppTool(
 }
 ```
 
-`module: NodeNext` + `moduleResolution: NodeNext` sont essentiels pour les imports ESM avec extensions `.js` depuis TypeScript.
+`module: NodeNext` + `moduleResolution: NodeNext` are essential for ESM imports with `.js` extensions from TypeScript.
 
 ---
 
-## 11. Checklist de câblage
+## 11. Wiring checklist
 
-1. `manifest.json` pointe vers `uiGeneratorAgent.json`
-2. `uiGeneratorAgent.json` pointe vers `ai-plugin.json`
-3. `ai-plugin.json` utilise `namespace: uigenerator`
-4. `ai-plugin.json` utilise `type: RemoteMCPServer`
-5. l'URL runtime est `${{OPENAPI_SERVER_URL}}/mcp`
-6. `description_for_model` décrit clairement les **3 cas d'usage**
-7. les tools widgetés déclarent `_meta.ui.resourceUri`
-8. les widgets sont enregistrés via `registerAppResource`
-9. CORS autorise `null` + domaines Microsoft + devtunnel
-10. après changement du serveur ou des ressources : rebuild puis relancer
+1. `manifest.json` points to `uiGeneratorAgent.json`
+2. `uiGeneratorAgent.json` points to `ai-plugin.json`
+3. `ai-plugin.json` uses `namespace: uigenerator`
+4. `ai-plugin.json` uses `type: RemoteMCPServer`
+5. the runtime URL is `${{OPENAPI_SERVER_URL}}/mcp`
+6. `description_for_model` clearly describes the **3 use cases**
+7. widget-enabled tools declare `_meta.ui.resourceUri`
+8. widgets are registered through `registerAppResource`
+9. CORS allows `null` + Microsoft domains + devtunnel
+10. after changing the server or resources: rebuild then relaunch
 
 ---
 
-## À retenir
+## Key takeaway
 
-Sur ce projet, le setup fonctionne si le trio suivant est correct :
+In this project, the setup works if the following trio is correct:
 - **manifest -> uiGeneratorAgent.json**
 - **uiGeneratorAgent.json -> ai-plugin.json**
 - **ai-plugin.json -> RemoteMCPServer -> `${{OPENAPI_SERVER_URL}}/mcp`**
 
-Mais le vrai point décisif reste **`description_for_model`** : c'est elle qui dicte au LLM quand utiliser `generateUI`, `updateUI`, `createTicket` ou `generateUIFromTicket`.
+But the real deciding factor is still **`description_for_model`**: it is what tells the LLM when to use `generateUI`, `updateUI`, `createTicket`, or `generateUIFromTicket`.

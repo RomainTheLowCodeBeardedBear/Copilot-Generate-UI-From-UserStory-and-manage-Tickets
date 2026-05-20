@@ -1,166 +1,166 @@
-# Comment guider le LLM pour qu'il choisisse le bon outil
+# How to Guide the LLM to Choose the Right Tool
 
-## Le problème
-Avec 10 outils disponibles, le LLM peut facilement prendre le mauvais chemin si les règles de routage sont ambiguës. Dans ce projet, le cas classique est le suivant : l'utilisateur dit « crée une interface pour un tableau de bord » et le modèle risque de choisir `generateUIFromTicket` alors qu'aucun ticket n'existe. Le bon outil est alors `generateUI`.
+## The problem
+With 10 tools available, the LLM can easily take the wrong path if the routing rules are ambiguous. In this project, the classic case is this: the user says “create an interface for a dashboard” and the model may choose `generateUIFromTicket` even though no ticket exists. The correct tool is then `generateUI`.
 
-## La solution
-Le levier principal est `description_for_model` dans `appPackage\ai-plugin.json`. C'est le champ le plus important du projet pour le routage des outils. En pratique, le modèle lit surtout ce bloc comme une consigne continue. Il faut donc écrire **un seul paragraphe**, avec des règles explicites, sans ambiguïté.
+## The solution
+The main lever is `description_for_model` in `appPackage\ai-plugin.json`. It is the most important field in the project for tool routing. In practice, the model mostly reads this block as a continuous instruction. So you should write **a single paragraph**, with explicit, unambiguous rules.
 
-Exemple de formulation efficace dans ce projet :
+Example of effective wording in this project:
 
 ```text
-TROIS CAS D'USAGE:
-CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket
-CAS 2 - Créer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket
-CAS 3 - UI libre SANS ticket: utiliser generateUI pour créer et updateUI pour modifier
-RÈGLE: si l'utilisateur mentionne un ticket ou un ID ticket → CAS 1 ou 2
-Si l'utilisateur demande juste "crée une interface pour X" sans ticket → CAS 3
+THREE USE CASES:
+CASE 1 - UI from an existing ticket: use generateUIFromTicket
+CASE 2 - Create a ticket then its UI: first createTicket, then generateUIFromTicket
+CASE 3 - Standalone UI WITHOUT a ticket: use generateUI to create and updateUI to modify
+RULE: if the user mentions a ticket or a ticket ID → CASE 1 or 2
+If the user only asks "create an interface for X" without a ticket → CASE 3
 ```
 
-### Autre levier : `instruction.txt`
-Le fichier `appPackage\instruction.txt` joue le rôle de renfort. Il doit répéter les mêmes règles que `description_for_model`, pas les contredire. Dans ce projet, il rappelle par exemple :
-- `generateUI` / `updateUI` pour les générations libres ;
-- `generateUIFromTicket` pour les demandes liées à un ticket ;
-- `createTicket` avec `htmlCode` pour sauvegarder une UI libre dans un ticket.
+### Another lever: `instruction.txt`
+The `appPackage\instruction.txt` file acts as reinforcement. It must repeat the same rules as `description_for_model`, not contradict them. In this project, for example, it reminds the model of:
+- `generateUI` / `updateUI` for standalone generations;
+- `generateUIFromTicket` for ticket-related requests;
+- `createTicket` with `htmlCode` to save a standalone UI into a ticket.
 
-### Pièges courants
-- Ne supposez pas que le LLM lira chaque description d'outil en détail : il s'appuie d'abord sur `description_for_model`.
-- N'utilisez pas des formulations molles comme « peut utiliser ». Préférez `DOIT`, `TOUJOURS`, `JAMAIS`.
-- Testez chaque cas séparément et vérifiez l'outil réellement choisi.
-- Si le modèle se trompe encore, rendez la règle plus explicite avec des mots-clés en majuscules.
+### Common pitfalls
+- Do not assume the LLM will read each tool description in detail: it relies first on `description_for_model`.
+- Do not use soft wording like “can use.” Prefer `MUST`, `ALWAYS`, `NEVER`.
+- Test each case separately and verify which tool was actually chosen.
+- If the model still gets it wrong, make the rule more explicit with uppercase keywords.
 
-### Pattern qui marche bien
-Les directives absolues fonctionnent mieux que les nuances :
-- **TOUJOURS** utiliser `generateUIFromTicket` pour une UI liée à un ticket.
-- **JAMAIS** utiliser `generateUIFromTicket` si l'utilisateur ne parle pas d'un ticket.
-- **TOUJOURS** inclure `htmlCode` dans `createTicket` quand on sauvegarde une UI libre déjà générée.
+### A pattern that works well
+Absolute directives work better than nuance:
+- **ALWAYS** use `generateUIFromTicket` for a UI tied to a ticket.
+- **NEVER** use `generateUIFromTicket` if the user does not mention a ticket.
+- **ALWAYS** include `htmlCode` in `createTicket` when saving an already generated standalone UI.
 
-## Exemples
-- « Crée une interface pour un tableau de bord RH » → `generateUI`.
-- « Ajoute un filtre et une colonne KPI à l'interface actuelle » → `updateUI`.
-- « Génère l'UI du ticket US-001 » → `generateUIFromTicket`.
-- « Crée un ticket pour une page profil, puis génère son UI » → `createTicket`, puis `generateUIFromTicket`.
-- « Sauvegarde cette UI libre dans un ticket » → `createTicket` avec `htmlCode` contenant le dernier HTML connu.
+## Examples
+- “Create an interface for an HR dashboard” → `generateUI`.
+- “Add a filter and a KPI column to the current interface” → `updateUI`.
+- “Generate the UI for ticket US-001” → `generateUIFromTicket`.
+- “Create a ticket for a profile page, then generate its UI” → `createTicket`, then `generateUIFromTicket`.
+- “Save this standalone UI into a ticket” → `createTicket` with `htmlCode` containing the latest known HTML.
 
-## Artefacts réels de routage à copier
+## Real routing artifacts to copy
 
-### `description_for_model` complète (`appPackage\ai-plugin.json`)
-C'est le bloc le plus important du projet pour le choix d'outil. Voici la valeur exacte actuellement embarquée :
+### Full `description_for_model` (`appPackage\ai-plugin.json`)
+This is the most important block in the project for tool selection. Here is the exact value currently embedded:
 
 ```json
-"description_for_model": "Plugin de gestion de tickets UI et generation d'interfaces web. TROIS CAS D'USAGE: CAS 1 - UI depuis un ticket existant: utiliser generateUIFromTicket pour generer ou modifier l'UI d'un ticket existant. CAS 2 - Creer un ticket puis son UI: d'abord createTicket, puis generateUIFromTicket. CAS 3 - UI libre SANS ticket: quand l'utilisateur veut juste une interface sans parler de ticket, utiliser generateUI pour creer et updateUI pour modifier. L'UI s'affiche dans le panneau lateral. Quand l'utilisateur veut ensuite sauvegarder dans un ticket, appeler createTicket avec le parametre htmlCode contenant le DERNIER code HTML genere/modifie dans la conversation. REGLE: si l'utilisateur mentionne un ticket ou un ID ticket, utiliser le CAS 1 ou 2. Si l'utilisateur demande juste 'cree une interface pour X' sans mentionner de ticket, utiliser le CAS 3 (generateUI/updateUI). IMPORTANT: quand l'utilisateur demande de creer un ticket apres avoir travaille sur une UI libre, TOUJOURS inclure le htmlCode dans createTicket pour ne pas perdre le travail."
+"description_for_model": "UI ticket management and web interface generation plugin. THREE USE CASES: CASE 1 - UI from an existing ticket: use generateUIFromTicket to generate or modify the UI of an existing ticket. CASE 2 - Create a ticket then its UI: first createTicket, then generateUIFromTicket. CASE 3 - Standalone UI WITHOUT a ticket: when the user just wants an interface without mentioning a ticket, use generateUI to create and updateUI to modify. The UI is displayed in the side panel. When the user then wants to save it in a ticket, call createTicket with the htmlCode parameter containing the LATEST HTML code generated/modified in the conversation. RULE: if the user mentions a ticket or a ticket ID, use CASE 1 or 2. If the user only asks 'create an interface for X' without mentioning a ticket, use CASE 3 (generateUI/updateUI). IMPORTANT: when the user asks to create a ticket after working on a standalone UI, ALWAYS include htmlCode in createTicket so the work is not lost."
 ```
 
-### `instruction.txt` répète le workflow attendu
-Le fichier `appPackage\instruction.txt` ne remplace pas `description_for_model` : il la renforce. Les sections réellement lues par le modèle sont :
+### `instruction.txt` repeats the expected workflow
+The `appPackage\instruction.txt` file does not replace `description_for_model`: it reinforces it. The sections actually read by the model are:
 
 ```text
-## Fonctions disponibles
+## Available functions
 
 ### generateUI
-Genere une interface complete HTML/CSS/JS a partir d'une description en langage naturel. Le code genere s'affiche automatiquement dans le widget lateral.
+Generate a complete HTML/CSS/JS interface from a natural-language description. The generated code is automatically shown in the side widget.
 
 ### updateUI
-Met a jour l'interface existante selon les modifications demandees par l'utilisateur. Garde le contexte de ce qui a ete genere precedemment et applique uniquement les changements demandes.
+Update the existing interface according to the changes requested by the user. Keep the context of what was previously generated and apply only the requested changes.
 
 ### generateUIFromTicket
-Genere une interface HTML/CSS/JS a partir de la description d'un ticket, puis enregistre cette proposition UI sur le ticket. Le code HTML est fourni dans l'appel d'outil et la previsualisation s'affiche dans le widget lateral.
+Generate an HTML/CSS/JS interface from a ticket description, then save this UI proposal on the ticket. The HTML code is provided in the tool call and the preview is shown in the side widget.
 
 ## Workflow
 
-### Generation libre
-1. Si l'utilisateur decrit une UI sans ticket, appeler `generateUI` avec une description detaillee et le code HTML complet.
-2. Le widget affiche l'interface generee.
-3. Decrire brievement ce qui a ete genere et les fonctionnalites incluses.
+### Standalone generation
+1. If the user describes a UI without a ticket, call `generateUI` with a detailed description and the full HTML code.
+2. The widget displays the generated interface.
+3. Briefly describe what was generated and the included features.
 
-### Modifications iteratives
-1. Si l'utilisateur demande un changement sur l'interface courante, appeler `updateUI` avec le code HTML complet mis a jour (pas juste le diff).
-2. Le widget met a jour l'affichage.
-3. Confirmer les changements effectues.
+### Iterative changes
+1. If the user asks for a change to the current interface, call `updateUI` with the full updated HTML code (not just the diff).
+2. The widget updates the display.
+3. Confirm the changes that were made.
 
-### Workflow tickets
-1. Si l'utilisateur dit "show my tickets", "list tickets", "montre mes tickets" ou "liste les tickets", appeler `listTickets`.
-2. Si l'utilisateur veut consulter un ticket precis, appeler `getTicket`.
-3. Si l'utilisateur clique sur **Generate UI** dans le widget tickets, ou demande "generate UI for US-001" / "genere l'UI du ticket US-001", appeler `generateUIFromTicket`.
-4. Si la description du ticket n'est pas deja disponible dans le contexte, appeler d'abord `getTicket`, puis generer le HTML complet et appeler `generateUIFromTicket` avec `ticketId` + `htmlCode`.
-5. Si l'utilisateur clique sur **View UI**, ou veut voir une proposition existante, appeler `getTicket`.
-6. Apres une iteration avec `updateUI`, si l'utilisateur dit "save to ticket", "save UI to ticket" ou "sauvegarde sur le ticket", appeler `saveUIToTicket` avec `ticketId` + le code HTML complet final.
-7. Ne remplace pas `generateUI` / `updateUI` : ils restent le workflow par defaut pour les generations libres sans ticket.
+### Ticket workflow
+1. If the user says "show my tickets", "list tickets", "show my tickets" or "list the tickets", call `listTickets`.
+2. If the user wants to view a specific ticket, call `getTicket`.
+3. If the user clicks **Generate UI** in the tickets widget, or asks "generate UI for US-001" / "generate the UI for ticket US-001", call `generateUIFromTicket`.
+4. If the ticket description is not already available in the context, first call `getTicket`, then generate the full HTML and call `generateUIFromTicket` with `ticketId` + `htmlCode`.
+5. If the user clicks **View UI**, or wants to see an existing proposal, call `getTicket`.
+6. After an iteration with `updateUI`, if the user says "save to ticket", "save UI to ticket" or "save to the ticket", call `saveUIToTicket` with `ticketId` + the final full HTML code.
+7. It does not replace `generateUI` / `updateUI`: they remain the default workflow for standalone generations without a ticket.
 ```
 
-### `functions[]` = indices secondaires de routage
-Le top-level `functions[]` ajoute une couche d'indices plus fine. Voici l'extrait réel :
+### `functions[]` = secondary routing hints
+The top-level `functions[]` adds a finer layer of hints. Here is the real excerpt:
 
 ```json
 "functions": [
   {
     "name": "generateUI",
-    "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre. Pour les UIs sans ticket associe. Le resultat s'affiche dans le panneau lateral."
+    "description": "Generate a complete HTML/CSS/JS interface from a standalone description. For UIs without an associated ticket. The result is shown in the side panel."
   },
   {
     "name": "updateUI",
-    "description": "Modifie l'interface existante affichee dans le panneau lateral. Envoyer le code HTML complet mis a jour."
+    "description": "Modify the existing interface shown in the side panel. Send the full updated HTML code."
   },
   {
     "name": "listTickets",
-    "description": "Liste les tickets du backlog UI avec statut, priorite, assignee et etat de la proposition UI."
+    "description": "List UI backlog tickets with status, priority, assignee, and UI proposal state."
   },
   {
     "name": "getTicket",
-    "description": "Recupere le detail complet d'un ticket, y compris la proposition UI si elle existe deja."
+    "description": "Retrieve the full details of a ticket, including the UI proposal if it already exists."
   },
   {
     "name": "generateUIFromTicket",
-    "description": "Genere ou modifie une interface HTML/CSS/JS a partir de la description d'un ticket et l'enregistre dans le ticket. Utiliser TOUJOURS ce tool pour toute creation ou modification d'UI liee a un ticket."
+    "description": "Generate or modify an HTML/CSS/JS interface from a ticket description and save it to the ticket. ALWAYS use this tool for any UI creation or modification tied to a ticket."
   },
   {
     "name": "saveUIToTicket",
-    "description": "Enregistre la version finale d'une interface HTML/CSS/JS sur un ticket existant."
+    "description": "Save the final version of an HTML/CSS/JS interface to an existing ticket."
   },
   {
     "name": "createTicket",
-    "description": "Cree un nouveau ticket. Si htmlCode est fourni, enregistre aussi la proposition UI. Utiliser quand l'utilisateur veut sauvegarder une UI libre dans un ticket."
+    "description": "Create a new ticket. If htmlCode is provided, also save the UI proposal. Use when the user wants to save a standalone UI into a ticket."
   },
   {
     "name": "updateTicket",
-    "description": "Met a jour les champs d'un ticket (titre, description, statut, priorite, assignee)."
+    "description": "Update ticket fields (title, description, status, priority, assignee)."
   },
   {
     "name": "resetTickets",
-    "description": "Reinitialise tous les tickets a leur etat initial pour refaire une demo propre."
+    "description": "Reset all tickets to their initial state to run a clean demo again."
   },
   {
     "name": "viewTicketUI",
-    "description": "Affiche la proposition UI d'un ticket dans le panneau de preview lateral."
+    "description": "Display a ticket's UI proposal in the side preview panel."
   }
 ]
 ```
 
-Ces descriptions servent de **secondaire routing hints** :
-- `generateUI` contient explicitement **"sans ticket associe"** ;
-- `updateUI` contient **"interface existante"** ;
-- `generateUIFromTicket` contient **"ticket"** + **"TOUJOURS"** ;
-- `createTicket` contient **"sauvegarder une UI libre"**.
+These descriptions act as **secondary routing hints**:
+- `generateUI` explicitly contains **"without an associated ticket"**;
+- `updateUI` contains **"existing interface"**;
+- `generateUIFromTicket` contains **"ticket"** + **"ALWAYS"**;
+- `createTicket` contains **"save a standalone UI"**.
 
-Quand `description_for_model` est ambiguë, c'est souvent ce vocabulaire court qui fait pencher le choix final.
+When `description_for_model` is ambiguous, this short vocabulary often tips the final choice.
 
-### Les descriptions détaillées de `x-mcp_tool_description.tools[]`
-Le runtime MCP redéclare aussi les outils avec leurs schémas. Exemple réel pour `generateUI` :
+### The detailed descriptions in `x-mcp_tool_description.tools[]`
+The MCP runtime also redeclares the tools with their schemas. Real example for `generateUI`:
 
 ```json
 {
   "name": "generateUI",
-  "description": "Genere une interface HTML/CSS/JS complete a partir d'une description libre (sans ticket). Le resultat s'affiche dans le panneau lateral.",
+  "description": "Generate a complete HTML/CSS/JS interface from a standalone description (without a ticket). The result is shown in the side panel.",
   "inputSchema": {
     "type": "object",
     "properties": {
       "description": {
         "type": "string",
-        "description": "Description en langage naturel de l'interface a generer"
+        "description": "Natural-language description of the interface to generate"
       },
       "htmlCode": {
         "type": "string",
-        "description": "Code HTML/CSS/JS complet de l'interface generee. Document HTML valide auto-contenu."
+        "description": "Complete HTML/CSS/JS code for the generated interface. Self-contained valid HTML document."
       }
     },
     "required": ["description", "htmlCode"],
@@ -175,40 +175,40 @@ Le runtime MCP redéclare aussi les outils avec leurs schémas. Exemple réel po
 }
 ```
 
-Ici, la phrase **"description libre (sans ticket)"** est encore un indice de routage. Les descriptions de `functions[]` et de `x-mcp_tool_description.tools[]` doivent donc raconter la même histoire.
+Here, the phrase **"standalone description (without a ticket)"** is another routing hint. The descriptions in `functions[]` and `x-mcp_tool_description.tools[]` must tell the same story.
 
-### Conversation starters réels (`ai-plugin.json`)
-Ces invites sont utiles comme jeux de tests de routage :
+### Real conversation starters (`ai-plugin.json`)
+These prompts are useful as routing test cases:
 
 ```json
 "conversation_starters": [
-  { "text": "Montre-moi les tickets UI disponibles" },
-  { "text": "Genere un formulaire de contact moderne" },
-  { "text": "Genere une UI pour le ticket US-001" },
-  { "text": "Fais une landing page avec hero et features" }
+  { "text": "Show me the available UI tickets" },
+  { "text": "Generate a modern contact form" },
+  { "text": "Generate a UI for ticket US-001" },
+  { "text": "Create a landing page with hero and features" }
 ]
 ```
 
-On voit tout de suite les trois branches voulues : board tickets, UI libre, UI liée à un ticket.
+You can immediately see the three intended branches: ticket board, standalone UI, and ticket-linked UI.
 
-## Déclaration du routage : double source à garder synchronisée
+## Routing declaration: two sources to keep in sync
 
-### Côté serveur (`mcp-server\src\mcp-server.ts`)
+### Server side (`mcp-server\src\mcp-server.ts`)
 ```typescript
 registerAppTool(
   server,
   'generateUI',
   {
-    description: 'Genere une interface HTML/CSS/JS complete a partir d\'une description',
+    description: 'Generate a complete HTML/CSS/JS interface from a description',
     inputSchema: {
-      description: z.string().describe('Description de l\'interface generee'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet auto-contenu'),
+      description: z.string().describe('Description of the generated interface'),
+      htmlCode: z.string().describe('Complete self-contained HTML/CSS/JS code'),
     },
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ description, htmlCode }) => {
     return {
-      content: [{ type: 'text' as const, text: `Interface generee: ${description}` }],
+      content: [{ type: 'text' as const, text: `Generated interface: ${description}` }],
       structuredContent: {
         type: 'generate',
         description,
@@ -220,7 +220,7 @@ registerAppTool(
 );
 ```
 
-### Côté plugin (`appPackage\ai-plugin.json`)
+### Plugin side (`appPackage\ai-plugin.json`)
 ```json
 {
   "name": "generateUI",
@@ -231,17 +231,17 @@ registerAppTool(
 }
 ```
 
-Si ces deux couches divergent, vous obtenez un système difficile à diagnostiquer : le LLM peut choisir le bon tool, mais le mauvais widget s'ouvre ; ou inversement, le host ouvre un widget qui ne correspond plus à la narration de `description_for_model`.
+If these two layers diverge, you get a system that is hard to diagnose: the LLM may choose the right tool, but the wrong widget opens; or conversely, the host opens a widget that no longer matches the story told by `description_for_model`.
 
-## Comment déboguer un mauvais routage
-1. **Commencer par `description_for_model`** : vérifier si la règle métier y est formulée en termes absolus (`TOUJOURS`, `SANS ticket`, `CAS 1/2/3`).
-2. **Comparer `instruction.txt`** : il doit répéter la même règle, surtout dans `## Workflow`.
-3. **Relire `functions[]`** : les mots courts comme `sans ticket associe`, `interface existante`, `ticket`, `TOUJOURS` influencent réellement la sélection.
-4. **Relire `x-mcp_tool_description.tools[]`** : description, schéma et `_meta` doivent raconter la même chose que `functions[]`.
-5. **Comparer au serveur** : dans `mcp-server\src\mcp-server.ts`, vérifier `registerAppTool(...)`, la `description`, l'`inputSchema` et `_meta.ui.resourceUri`.
-6. **Tester avec des prompts minimaux** :
-   - `Genere un formulaire de contact moderne` → doit aller vers `generateUI`
-   - `Genere une UI pour le ticket US-001` → doit aller vers `generateUIFromTicket`
-   - `Montre-moi les tickets UI disponibles` → doit aller vers `listTickets`
-7. **En cas d'erreur persistante** : renforcer d'abord `description_for_model`, puis seulement les descriptions individuelles des tools.
+## How to debug bad routing
+1. **Start with `description_for_model`**: check whether the business rule is written there in absolute terms (`ALWAYS`, `WITHOUT a ticket`, `CASE 1/2/3`).
+2. **Compare `instruction.txt`**: it must repeat the same rule, especially in `## Workflow`.
+3. **Re-read `functions[]`**: short phrases like `without an associated ticket`, `existing interface`, `ticket`, `ALWAYS` really influence selection.
+4. **Re-read `x-mcp_tool_description.tools[]`**: description, schema, and `_meta` must tell the same story as `functions[]`.
+5. **Compare with the server**: in `mcp-server\src\mcp-server.ts`, verify `registerAppTool(...)`, the `description`, the `inputSchema`, and `_meta.ui.resourceUri`.
+6. **Test with minimal prompts**:
+   - `Generate a modern contact form` → should go to `generateUI`
+   - `Generate a UI for ticket US-001` → should go to `generateUIFromTicket`
+   - `Show me the available UI tickets` → should go to `listTickets`
+7. **If the error persists**: strengthen `description_for_model` first, then only afterward the individual tool descriptions.
 

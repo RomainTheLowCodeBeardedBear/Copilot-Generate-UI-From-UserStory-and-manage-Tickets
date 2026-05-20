@@ -1,45 +1,45 @@
-# Comment contrôler quel widget s'ouvre (et éviter les boucles)
+# How to control which widget opens (and avoid loops)
 
-## Le problème
-Dans ce projet, `_meta.ui.resourceUri` dans `appPackage\ai-plugin.json` ne sert pas seulement à associer un widget à un outil : le host M365 force l'ouverture ou le rafraîchissement de cette ressource dès que l'outil est appelé.
+## The problem
+In this project, `_meta.ui.resourceUri` in `appPackage\ai-plugin.json` is not only used to associate a widget with a tool: the M365 host forces that resource to open or refresh as soon as the tool is called.
 
-Le piège majeur apparaît quand un widget appelle `app.callServerTool(...)` sur un outil qui possède lui-même un `resourceUri`. Le host essaie alors de rouvrir ce widget ressource, même si l'appel venait déjà d'un widget. C'est ainsi qu'on crée une boucle de réouverture.
+The main trap appears when a widget calls `app.callServerTool(...)` on a tool that itself has a `resourceUri`. The host then tries to reopen that resource widget, even if the call already came from a widget. That is how you create a reopen loop.
 
-### Symptôme
-- le widget se rouvre en boucle ;
-- une deuxième instance du widget apparaît ;
-- l'utilisateur clique sur **Retour**, mais le widget se rouvre immédiatement ;
-- un simple appel de lecture déclenche un rafraîchissement visuel non souhaité.
+### Symptom
+- the widget keeps reopening in a loop;
+- a second instance of the widget appears;
+- the user clicks **Back**, but the widget immediately reopens;
+- a simple read call triggers an unwanted visual refresh.
 
-## La solution
-### La règle d'or
-Les outils appelés **depuis un widget** via `callServerTool` ne doivent **jamais** porter de `resourceUri`. Réservez `resourceUri` aux outils appelés **par le LLM depuis le chat** pour décider quel widget doit s'ouvrir.
+## The solution
+### The golden rule
+Tools called **from a widget** via `callServerTool` must **never** have a `resourceUri`. Reserve `resourceUri` for tools called **by the LLM from the chat** to decide which widget should open.
 
-### Pattern à appliquer dans ce projet
-- `listTickets` a `resourceUri: tickets-list.html` : le chat ouvre le tableau des tickets.
-- `getTicket` n'a **pas** de `resourceUri` : le widget l'utilise pour lire les données sans provoquer de réouverture.
-- `generateUIFromTicket` n'a **pas** de `resourceUri` côté routage host : on laisse le widget détecter la nouvelle UI par polling au lieu de forcer la réouverture du preview.
-- `generateUI` a `resourceUri: preview.html` : le chat ouvre directement le widget de preview pour une génération libre.
+### Pattern to apply in this project
+- `listTickets` has `resourceUri: tickets-list.html`: the chat opens the ticket board.
+- `getTicket` has **no** `resourceUri`: the widget uses it to read data without causing a reopen.
+- `generateUIFromTicket` has **no** `resourceUri` on the host-routing side: let the widget detect the new UI through polling instead of forcing the preview to reopen.
+- `generateUI` has `resourceUri: preview.html`: the chat directly opens the preview widget for standalone generation.
 
-### Matrice des 10 outils à maintenir côté `ai-plugin.json`
+### Matrix of the 10 tools to maintain in `ai-plugin.json`
 
-| Outil | `resourceUri` | Pourquoi |
+| Tool | `resourceUri` | Why |
 | --- | --- | --- |
-| `generateUI` | Oui → `ui://uigenerator/preview.html` | Génération libre depuis le chat : le host doit ouvrir le widget de preview. |
-| `updateUI` | Oui → `ui://uigenerator/preview.html` | Modification d'une UI libre depuis le chat : on garde le preview comme widget principal. |
-| `listTickets` | Oui → `ui://uigenerator/tickets-list.html` | Le chat ouvre le tableau des tickets. |
-| `getTicket` | Non | Lecture interne depuis un widget, restauration d'état, polling : aucune ouverture forcée ne doit se produire. |
-| `generateUIFromTicket` | Non | Le résultat est enregistré sur le ticket, puis détecté par polling pour éviter de rouvrir `preview.html` en boucle. |
-| `saveUIToTicket` | Non | Sauvegarde technique depuis le widget, sans changement de widget. |
-| `createTicket` | Oui → `ui://uigenerator/tickets-list.html` | Après création depuis le chat, on veut réafficher le tableau mis à jour. |
-| `updateTicket` | Oui → `ui://uigenerator/tickets-list.html` | Depuis le chat, le résultat naturel est un board rafraîchi. Si vous l'appelez depuis un widget, vous acceptez un refresh forcé. |
-| `resetTickets` | Oui → `ui://uigenerator/tickets-list.html` | Le reset doit réouvrir un board propre immédiatement. |
-| `viewTicketUI` | Oui → `ui://uigenerator/preview.html` | Depuis le chat, on veut ouvrir directement la preview d'un ticket existant. |
+| `generateUI` | Yes → `ui://uigenerator/preview.html` | Standalone generation from the chat: the host must open the preview widget. |
+| `updateUI` | Yes → `ui://uigenerator/preview.html` | Modifying a standalone UI from the chat: keep the preview as the main widget. |
+| `listTickets` | Yes → `ui://uigenerator/tickets-list.html` | The chat opens the ticket board. |
+| `getTicket` | No | Internal reads from a widget, state restoration, polling: no forced opening must happen. |
+| `generateUIFromTicket` | No | The result is saved on the ticket, then detected by polling to avoid reopening `preview.html` in a loop. |
+| `saveUIToTicket` | No | Technical save from the widget, with no widget change. |
+| `createTicket` | Yes → `ui://uigenerator/tickets-list.html` | After creation from the chat, we want to show the updated board again. |
+| `updateTicket` | Yes → `ui://uigenerator/tickets-list.html` | From the chat, the natural result is a refreshed board. If you call it from a widget, you accept a forced refresh. |
+| `resetTickets` | Yes → `ui://uigenerator/tickets-list.html` | Reset must reopen a clean board immediately. |
+| `viewTicketUI` | Yes → `ui://uigenerator/preview.html` | From the chat, we want to directly open the preview of an existing ticket. |
 
-> Conseil pratique : gardez cette matrice cohérente entre `appPackage\ai-plugin.json` et les `_meta` déclarés dans `mcp-server\src\mcp-server.ts`, sinon le comportement du host devient difficile à raisonner.
+> Practical tip: keep this matrix consistent between `appPackage\ai-plugin.json` and the `_meta` declared in `mcp-server\src\mcp-server.ts`, otherwise the host behavior becomes hard to reason about.
 
-### Pattern : utiliser le polling au lieu de `resourceUri`
-Pour les outils de génération liés à un ticket, n'ouvrez pas le widget via `resourceUri`. Faites écrire le HTML sur le serveur, puis laissez le widget interroger `getTicket` toutes les 5 secondes jusqu'à ce que `uiProposal` soit disponible.
+### Pattern: use polling instead of `resourceUri`
+For generation tools tied to a ticket, do not open the widget via `resourceUri`. Write the HTML on the server, then let the widget query `getTicket` every 5 seconds until `uiProposal` becomes available.
 
 ```javascript
 const pollId = setInterval(async () => {
@@ -56,15 +56,15 @@ const pollId = setInterval(async () => {
 }, 5000);
 ```
 
-## Exemples
-- Dans `tickets-list-widget.html`, `openPreview()` appelle volontairement `getTicket` et non `viewTicketUI` pour éviter que le host tente de rouvrir `preview.html`.
-- Quand l'utilisateur clique sur **Générer l'UI** dans le board, le widget envoie un message au chat puis attend la disponibilité de `uiProposal` via `getTicket`.
-- Si vous remplacez cet appel par un outil avec `resourceUri`, vous recréez le bug classique : retour impossible, double widget, ou réouverture infinie.
+## Examples
+- In `tickets-list-widget.html`, `openPreview()` intentionally calls `getTicket` and not `viewTicketUI` to avoid the host trying to reopen `preview.html`.
+- When the user clicks **Generate UI** in the board, the widget sends a message to the chat and then waits for `uiProposal` to become available through `getTicket`.
+- If you replace that call with a tool that has a `resourceUri`, you recreate the classic bug: impossible back navigation, duplicate widget, or infinite reopen.
 
-## Implémentation réelle côté serveur
+## Real implementation on the server side
 
-### Ressources enregistrées avec `registerAppResource`
-Les widgets ne sont pas des abstractions : ils sont déclarés explicitement avec une URI `ui://...`.
+### Resources registered with `registerAppResource`
+Widgets are not abstractions: they are explicitly declared with a `ui://...` URI.
 
 ```typescript
 const PREVIEW_URI = 'ui://uigenerator/preview.html';
@@ -74,7 +74,7 @@ registerAppResource(
   server,
   'UI Preview Widget',
   PREVIEW_URI,
-  { description: 'Widget de previsualisation des interfaces generees' },
+  { description: 'Preview widget for generated interfaces' },
   async () => ({
     contents: [
       {
@@ -102,7 +102,7 @@ registerAppResource(
   server,
   'Tickets List Widget',
   TICKETS_LIST_URI,
-  { description: 'Widget de gestion des tickets et des propositions UI' },
+  { description: 'Ticket management and UI proposal widget' },
   async () => ({
     contents: [
       {
@@ -122,24 +122,24 @@ registerAppResource(
 );
 ```
 
-### Outils avec `resourceUri` : le host doit ouvrir un widget
-Extraits réels de `mcp-server\src\mcp-server.ts` :
+### Tools with `resourceUri`: the host must open a widget
+Real excerpts from `mcp-server\src\mcp-server.ts`:
 
 ```typescript
 registerAppTool(
   server,
   'generateUI',
   {
-    description: 'Genere une interface HTML/CSS/JS complete a partir d\'une description',
+    description: 'Generate a complete HTML/CSS/JS interface from a description',
     inputSchema: {
-      description: z.string().describe('Description de l\'interface generee'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet auto-contenu'),
+      description: z.string().describe('Description of the generated interface'),
+      htmlCode: z.string().describe('Complete self-contained HTML/CSS/JS code'),
     },
     _meta: { ui: { resourceUri: PREVIEW_URI } },
   },
   async ({ description, htmlCode }) => {
     return {
-      content: [{ type: 'text' as const, text: `Interface generee: ${description}` }],
+      content: [{ type: 'text' as const, text: `Generated interface: ${description}` }],
       structuredContent: {
         type: 'generate',
         description,
@@ -154,7 +154,7 @@ registerAppTool(
   server,
   'listTickets',
   {
-    description: 'Liste les tickets du backlog avec leur statut, priorite et disponibilite d\'une proposition UI',
+    description: 'List backlog tickets with their status, priority, and UI proposal availability',
     inputSchema: {},
     annotations: { readOnlyHint: true },
     _meta: {
@@ -165,7 +165,7 @@ registerAppTool(
     const tickets = loadTickets();
     const summarizedTickets = summarizeTickets(tickets);
     return {
-      content: [{ type: 'text' as const, text: `${summarizedTickets.length} tickets disponibles.` }],
+      content: [{ type: 'text' as const, text: `${summarizedTickets.length} tickets available.` }],
       structuredContent: {
         type: 'ticketList',
         tickets: summarizedTickets,
@@ -180,9 +180,9 @@ registerAppTool(
   server,
   'viewTicketUI',
   {
-    description: 'Affiche la proposition UI d\'un ticket dans le panneau de preview lateral',
+    description: 'Display a ticket UI proposal in the side preview panel',
     inputSchema: {
-      ticketId: z.string().describe('Identifiant du ticket dont on veut voir l\'UI, par exemple US-001'),
+      ticketId: z.string().describe('Identifier of the ticket whose UI you want to view, for example US-001'),
     },
     annotations: { readOnlyHint: true },
     _meta: {
@@ -192,9 +192,9 @@ registerAppTool(
   async ({ ticketId }) => {
     const tickets = loadTickets();
     const { ticket } = findTicket(tickets, ticketId);
-    const htmlCode = ticket.uiProposal || '<html><body><p>Aucune UI disponible pour ce ticket.</p></body></html>';
+    const htmlCode = ticket.uiProposal || '<html><body><p>No UI available for this ticket.</p></body></html>';
     return {
-      content: [{ type: 'text' as const, text: `UI du ticket ${ticketId} affichee.` }],
+      content: [{ type: 'text' as const, text: `UI for ticket ${ticketId} displayed.` }],
       structuredContent: {
         type: 'generate',
         ticketId,
@@ -208,19 +208,19 @@ registerAppTool(
 );
 ```
 
-Le même pattern existe aussi côté serveur pour `updateUI`, `createTicket`, `updateTicket`, `resetTickets` et, dans l'implémentation actuelle, `generateUIFromTicket`.
+The same pattern also exists on the server side for `updateUI`, `createTicket`, `updateTicket`, `resetTickets` and, in the current implementation, `generateUIFromTicket`.
 
-### Outils sans `resourceUri` : sûrs pour `callServerTool()` depuis un widget
-Le code réel montre deux variantes : `_meta: {}` explicite ou absence de `resourceUri` côté plugin.
+### Tools without `resourceUri`: safe for `callServerTool()` from a widget
+The real code shows two variants: explicit `_meta: {}` or absence of `resourceUri` on the plugin side.
 
 ```typescript
 registerAppTool(
   server,
   'getTicket',
   {
-    description: 'Recupere le detail complet d\'un ticket, y compris la proposition UI si elle existe',
+    description: 'Retrieve the full details of a ticket, including the UI proposal if it exists',
     inputSchema: {
-      ticketId: z.string().describe('Identifiant du ticket a consulter, par exemple US-001'),
+      ticketId: z.string().describe('Identifier of the ticket to inspect, for example US-001'),
     },
     annotations: { readOnlyHint: true },
     _meta: {},
@@ -229,7 +229,7 @@ registerAppTool(
     const tickets = loadTickets();
     const { ticket } = findTicket(tickets, ticketId);
     return {
-      content: [{ type: 'text' as const, text: `Ticket ${ticketId} charge.` }],
+      content: [{ type: 'text' as const, text: `Ticket ${ticketId} loaded.` }],
       structuredContent: {
         type: 'ticketDetail',
         ticket,
@@ -243,10 +243,10 @@ registerAppTool(
   server,
   'saveUIToTicket',
   {
-    description: 'Enregistre ou remplace la proposition UI HTML/CSS/JS d\'un ticket existant',
+    description: 'Save or replace the HTML/CSS/JS UI proposal of an existing ticket',
     inputSchema: {
-      ticketId: z.string().describe('Identifiant du ticket a mettre a jour, par exemple US-001'),
-      htmlCode: z.string().describe('Code HTML/CSS/JS complet a enregistrer comme proposition UI'),
+      ticketId: z.string().describe('Identifier of the ticket to update, for example US-001'),
+      htmlCode: z.string().describe('Complete HTML/CSS/JS code to save as the UI proposal'),
     },
     _meta: {},
   },
@@ -257,7 +257,7 @@ registerAppTool(
     tickets[index] = updatedTicket;
     saveTickets(tickets);
     return {
-      content: [{ type: 'text' as const, text: `Proposition UI enregistree pour ${ticketId}.` }],
+      content: [{ type: 'text' as const, text: `UI proposal saved for ${ticketId}.` }],
       structuredContent: {
         type: 'ticketSave',
         saved: true,
@@ -270,8 +270,8 @@ registerAppTool(
 );
 ```
 
-### Double déclaration dans `ai-plugin.json`
-Côté plugin, les tools qui ouvrent un widget sont redéclarés avec deux formes de clé :
+### Double declaration in `ai-plugin.json`
+On the plugin side, tools that open a widget are redeclared with two key forms:
 
 ```json
 {
@@ -283,15 +283,15 @@ Côté plugin, les tools qui ouvrent un widget sont redéclarés avec deux forme
 }
 ```
 
-Même chose pour `listTickets`, `createTicket`, `updateTicket`, `resetTickets` et `viewTicketUI`. Cette redondance n'est pas cosmétique : elle sert le host M365. Quand vous changez un URI, il faut le changer **dans `mcp-server.ts` et dans `appPackage\ai-plugin.json`**.
+The same is true for `listTickets`, `createTicket`, `updateTicket`, `resetTickets`, and `viewTicketUI`. This redundancy is not cosmetic: it serves the M365 host. When you change a URI, you must change it **in `mcp-server.ts` and in `appPackage\ai-plugin.json`**.
 
-### Pourquoi `openPreview()` utilise `getTicket`
-Le code du widget l'explique littéralement :
+### Why `openPreview()` uses `getTicket`
+The widget code literally explains it:
 
 ```javascript
 async function openPreview(ticketId) {
   try {
-    // Use getTicket (no resourceUri) to avoid host trying to open preview.html
+    // Use getTicket (no resourceUri) to avoid the host trying to open preview.html
     const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
     const data = result?.structuredContent;
     const ticket = data?.ticket || data;
@@ -303,31 +303,31 @@ async function openPreview(ticketId) {
       savePreviewState(ticketId);
       try {
         await app.updateModelContext({
-          content: [{ type: 'text', text: `L'utilisateur consulte l'UI du ticket ${ticketId} (${ticket.title || ''}). Voici le code HTML actuel de cette UI :\n\n${htmlCode}\n\nSi l'utilisateur demande des modifications, utilise ce code comme base et appelle generateUIFromTicket avec le code modifie.` }]
+          content: [{ type: 'text', text: `The user is viewing the UI for ticket ${ticketId} (${ticket.title || ''}). Here is the current HTML code for this UI:\n\n${htmlCode}\n\nIf the user requests modifications, use this code as the base and call generateUIFromTicket with the modified code.` }]
         });
       } catch (_) {}
       try { await app.requestDisplayMode({ mode: 'fullscreen' }); } catch (_) {}
       renderPreview();
     } else {
-      setBanner(`Aucune UI disponible pour ${ticketId}.`, 'error');
+      setBanner(`No UI available for ${ticketId}.`, 'error');
     }
   } catch (e) {
-    setBanner(`Erreur: ${e instanceof Error ? e.message : 'impossible'}`, 'error');
+    setBanner(`Error: ${e instanceof Error ? e.message : 'unable'}`, 'error');
   }
 }
 ```
 
-### Le piège visible dans le code actuel : appeler un tool qui ouvre lui-même un widget
-Le bug se comprend par contraste avec `viewTicketUI` :
+### The visible trap in the current code: calling a tool that itself opens a widget
+The bug becomes clear by contrast with `viewTicketUI`:
 
 ```typescript
 registerAppTool(
   server,
   'viewTicketUI',
   {
-    description: 'Affiche la proposition UI d\'un ticket dans le panneau de preview lateral',
+    description: 'Display a ticket UI proposal in the side preview panel',
     inputSchema: {
-      ticketId: z.string().describe('Identifiant du ticket dont on veut voir l\'UI, par exemple US-001'),
+      ticketId: z.string().describe('Identifier of the ticket whose UI you want to view, for example US-001'),
     },
     annotations: { readOnlyHint: true },
     _meta: {
@@ -340,16 +340,16 @@ registerAppTool(
 );
 ```
 
-Si un widget remplaçait son appel sûr :
+If a widget replaced its safe call:
 
 ```javascript
 await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
 ```
 
-par un appel vers `viewTicketUI`, le host verrait `resourceUri: PREVIEW_URI` et tenterait de rouvrir `preview.html`. C'est exactement le type de boucle de réouverture que le projet évite.
+with a call to `viewTicketUI`, the host would see `resourceUri: PREVIEW_URI` and try to reopen `preview.html`. That is exactly the kind of reopen loop this project avoids.
 
-### Alternative sûre réellement utilisée
-Le widget tickets lit et poll toujours avec le même pattern :
+### Safe alternative actually used
+The ticket widget always reads and polls with the same pattern:
 
 ```javascript
 const result = await app.callServerTool({ name: 'getTicket', arguments: { ticketId } });
@@ -358,10 +358,10 @@ const ticket = data?.ticket || data;
 const htmlCode = ticket?.uiProposal;
 ```
 
-Pour lancer une génération liée à un ticket, le widget ne fait pas `callServerTool('generateUIFromTicket')` ; il délègue le routage au chat, puis repoll `getTicket` :
+To launch generation tied to a ticket, the widget does not do `callServerTool('generateUIFromTicket')`; it delegates routing to the chat, then polls `getTicket` again:
 
 ```javascript
-const prompt = `Genere l'UI du ticket ${ticketId}`;
+const prompt = `Generate the UI for ticket ${ticketId}`;
 await app.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
 
 const pollId = setInterval(async () => {
@@ -376,5 +376,4 @@ const pollId = setInterval(async () => {
 }, 5000);
 ```
 
-C'est ce duo `sendMessage()` + `getTicket` qui évite de coupler un widget à un tool qui redemanderait au host d'ouvrir un autre widget.
-
+It is this `sendMessage()` + `getTicket` duo that avoids coupling a widget to a tool that would ask the host to open another widget again.

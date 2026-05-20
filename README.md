@@ -2,9 +2,23 @@
 
 > Agent déclaratif Microsoft 365 Copilot capable de **générer des interfaces HTML/CSS/JS à la volée**, de **gérer un backlog de tickets UI**, puis de **combiner les deux** pour créer, visualiser, itérer et sauvegarder des propositions d'interface directement dans le flux de conversation.
 
-![Aperçu de l'agent dans Microsoft 365 Copilot](docs/screenshots/placeholder.png)
+### 🎨 Génération d'une landing page Hero depuis un ticket
 
-*Captures d'écran à venir : aperçu du backlog, panneau latéral de prévisualisation et génération d'interface en conversation.*
+![Landing page Hero générée et ticket board](docs/screenshots/hero-landing-page.png)
+
+### 📋 Formulaire applicatif complexe généré en une phrase
+
+> *« Je voudrais créer une interface de demande de remboursement de frais professionnels assez détaillé, avec un thème noir, un titre en orange, du texte en blanc et un bandeau en haut pour afficher le nom du formulaire. »*
+
+![Formulaire de remboursement de frais professionnels](docs/screenshots/formulaire-remboursement.png)
+
+### 💻 Vue code — inspectez et copiez le HTML/CSS/JS généré
+
+![Vue code du composant généré](docs/screenshots/code-view.png)
+
+### 🗂️ Ticket Board plein écran — gérez votre backlog complet
+
+![Gestionnaire de tickets en plein écran](docs/screenshots/ticket-board-fullscreen.png)
 
 > 🚀 **Première fois ?** Consulte le [Guide de démarrage](docs/getting-started.md) — de l'installation de VS Code jusqu'au premier F5.
 

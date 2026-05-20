@@ -1,7 +1,7 @@
 # How to handle fullscreen without losing widget state
 
 ## The problem
-In this project, `app.requestDisplayMode({ mode: 'fullscreen' })` does not reuse the current iframe. The host creates a **new iframe**. So all JavaScript memory is lost: variables, event listeners, timers, DOM references—everything starts over from zero.
+In this project, `app.requestDisplayMode({ mode: 'fullscreen' })` does not reuse the current iframe. The host creates a **new iframe**. So all JavaScript memory is lost: variables, event listeners, timers, DOM references, everything starts over from zero.
 
 ### Symptom
 The user clicks the fullscreen button, but the widget shows its initial state or its loading screen instead of the expected content.

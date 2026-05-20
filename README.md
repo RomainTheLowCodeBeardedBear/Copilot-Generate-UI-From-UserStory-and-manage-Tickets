@@ -12,15 +12,15 @@
 
 ![Professional expense reimbursement form](docs/screenshots/formulaire-remboursement.png)
 
-### 💻 Code view — inspect and save the generated HTML/CSS/JS
+### 💻 Code view : inspect and save the generated HTML/CSS/JS
 
 ![Code view of the generated component](docs/screenshots/code-view.png)
 
-### 🗂️ Full-screen Ticket Board — manage your entire backlog
+### 🗂️ Full-screen Ticket Board : manage your entire backlog
 
 ![Full-screen ticket manager](docs/screenshots/ticket-board-fullscreen.png)
 
-> 🚀 **First time?** Check the [Getting Started Guide](docs/getting-started.md) — from installing VS Code to your first F5.
+> 🚀 **First time?** Check the [Getting Started Guide](docs/getting-started.md) : from installing VS Code to your first F5.
 
 ---
 
@@ -62,15 +62,15 @@ The goal is to cover a complete cycle:
 
 ## Supported use cases
 
-### Use case 1 — Generate a UI from an existing ticket
+### Use case 1 : Generate a UI from an existing ticket
 
 The user selects a ticket from the backlog, asks the agent to produce an interface proposal, then views the result in the side panel. They can then refine the interface through conversation and keep the proposal associated with the ticket.
 
-### Use case 2 — Create a ticket, then generate its UI
+### Use case 2 : Create a ticket, then generate its UI
 
 The user describes a need, the agent creates a ticket with the useful metadata (status, priority, assignee), then generates the corresponding interface from this new backlog entry.
 
-### Use case 3 — Generate a freeform UI without a ticket
+### Use case 3 : Generate a freeform UI without a ticket
 
 The user directly describes an interface without going through the backlog. The agent then generates a standalone UI, enables successive iterations, and may later suggest saving the result to an existing or newly created ticket.
 
@@ -80,9 +80,9 @@ The user directly describes an interface without going through the backlog. The 
 
 This project is a **Microsoft 365 Copilot declarative agent** (Declarative Copilot Agent), connected to an **MCP Server** via the **Model Context Protocol**, with interactive **MCP Apps widgets** (Embedded Apps) displayed directly in M365 Copilot chat.
 
-- **M365 Copilot declarative agent** — manifest v1.26, agent v1.6, plugin v2.4 with `RemoteMCPServer`
-- **Node.js/TypeScript/Express MCP Server** — 10 tools exposed via Streamable HTTP
-- **MCP Apps widgets** — 2 interactive HTML widgets embedded in chat (backlog + preview)
+- **M365 Copilot declarative agent** : manifest v1.26, agent v1.6, plugin v2.4 with `RemoteMCPServer`
+- **Node.js/TypeScript/Express MCP Server** : 10 tools exposed via Streamable HTTP
+- **MCP Apps widgets** : 2 interactive HTML widgets embedded in chat (backlog + preview)
 - **HTML/CSS/JS** interface generation from a natural-language description
 - Incremental updates to an existing UI through chat
 - UI ticket backlog management with **status**, **priority**, and **assignee**
@@ -325,7 +325,7 @@ This choice enables:
 
 | Version | Description |
 |---------|-------------|
-| `v1.0.0` | Initial version — complete agent with 3 UI use cases, backlog widget, full-screen preview, and real-time polling |
+| `v1.0.0` | Initial version : complete agent with 3 UI use cases, backlog widget, full-screen preview, and real-time polling |
 
 ---
 

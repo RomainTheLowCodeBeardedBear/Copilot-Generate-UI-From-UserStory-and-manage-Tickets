@@ -12,7 +12,7 @@
 
 ![Professional expense reimbursement form](docs/screenshots/formulaire-remboursement.png)
 
-### 💻 Code view — inspect and copy the generated HTML/CSS/JS
+### 💻 Code view — inspect and save the generated HTML/CSS/JS
 
 ![Code view of the generated component](docs/screenshots/code-view.png)
 
